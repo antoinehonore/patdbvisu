@@ -8,26 +8,17 @@ ifndef fname
 	fname=$(infolder)/20575_takecare.csv
 endif
 
+interm_fname=$(endfolder)/$(shell basename $(fname))
 
-upload: upload-overview upload-overview2 upload-monitor_meta
 
 chunk: $(fname)
-	$(PYTHON) bin/chunk.py -i $^ -o $(endfolder)/$(shell basename $(fname))
+	$(PYTHON) bin/chunk.py -i $^ -o $(interm_fname)
 
-
-upload-%: $(endfolder)/%.flag
-	@echo ""
-
-
-$(endfolder)/%.flag: $(endfolder)/%.csv
+upload: $(interm_fname)
 	$(PYTHON) bin/upload.py -i $^
-	touch $@
 
 
-prep-%: $(endfolder)/%.csv
-	@echo ""
-
-$(endfolder)/%.csv: $(infolder)/%.xlsx
-	$(PYTHON) bin/prep.py -i $^ -o $@
+prep: $(fname)
+	$(PYTHON) bin/prep.py -i $^ -o $(shell echo $(interm_fname) | sed 's/.xlsx/.csv/g')
 
 .SECONDARY:

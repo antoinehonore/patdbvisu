@@ -3,6 +3,7 @@
 import argparse
 import pandas as pd
 from unidecode import unidecode
+import numpy as np
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", type=str)
@@ -19,4 +20,4 @@ if __name__ == "__main__":
 
     df = pd.read_excel(infname)
     df.columns = [rx.sub(' ', unidecode(s.strip())).strip().lower().replace(" ","_") for s in df.columns]
-    df.replace(";", "", regex=True).to_csv(outfname, sep=";",index=False)
+    df.replace(";", "", regex=True).replace({".":np.nan,"-":np.nan}).to_csv(outfname, sep=";",index=False)

@@ -5,23 +5,13 @@ import argparse
 import pandas as pd
 from sqlalchemy import create_engine
 
-parser = argparse.ArgumentParser()
-parser.add_argument("-i", type=str, nargs="+")
 from parse import parse
 import os
-
-ov_col=['no', "ids__uid",'clinid', 'tkid', 'dsid', 'sex', 'birthdate', 'bw',
-       'ga', 'ga_w', 'recruited_by', 'takecare_harvest', 'takecare_review',
-       'unnamed_13', 'admission_cause', 'reserve_number', 'apgar_1', 'apgar_5',
-       'apgar_10', 'delivery', 'head_circum', 'ph_umbilical_chord_a',
-       'ph_umbilical_chord_v', 'base_excess', 'resucitation', 'betapred',
-       'rupture_of_membrane', 'h_rom_bf_p', 'mother_ab_bef_p', 'ab', 'gbs',
-       'chorioamnionitis', 'adrenaline', 'surfactant', 'caffeine',
-       'medication_before_stud', 'crp_before', 'other', 'born_in', 'projid']
+from utils import gdate
 
 
-def get_primary_keys(tbl_name, engine):
 
+def get_primary_keys(tbl_name, engine, thedefault="ids__interval"):
     query_s="SELECT c.column_name, c.data_type FROM information_schema.table_constraints tc \
     JOIN information_schema.constraint_column_usage AS ccu \
     USING(constraint_schema, constraint_name) \
@@ -32,11 +22,14 @@ def get_primary_keys(tbl_name, engine):
     AND ccu.column_name = c.column_name \
     WHERE constraint_type = \'PRIMARY KEY\' and tc.table_name = \'{}\'".format(tbl_name)
     with engine.connect() as con:
-        thekeys=pd.read_sql(query_s, con=con)
-    return thekeys["column_name"].values.tolist()
+        thekeys = pd.read_sql(query_s, con=con)
+    out=thekeys["column_name"].values.tolist()
+    if len(out) == 0:
+        out = [thedefault]
+    return out
 
 
-def get_tables(schema,engine):
+def get_tables(schema, engine):
     all_tables_str = "select t.table_name from information_schema.tables t where t.table_schema = \'{}\' and t.table_type = \'BASE TABLE\'".format(schema)
     with engine.connect() as con:
         all_tables = pd.read_sql(all_tables_str, con=con).values.reshape(-1).tolist()
@@ -97,18 +90,22 @@ def read_types(tbl_name):
     return thetypes
 
 
-import numpy as np
-import pickle as pkl
+date_fmt="%Y-%m-%d %H:%M:%S"
 
 
 def read_csv(fname, thetypes):
     df = pd.read_csv(fname, sep=";")
     if not (thetypes is None):
         for c in df.columns:
-            if thetypes[c].startswith("datetime64"):
-                df[c] = pd.to_datetime(df[c])
-            else:
-                df[c] = df[c].astype(thetypes[c])
+            if c in thetypes:
+                if thetypes[c].startswith("datetime64"):
+                    df[c] = pd.to_datetime(df[c])
+                elif thetypes[c].startswith("int"):
+                    df[c] = df[c].fillna(-99999).astype(thetypes[c])
+                else:
+                    df[c] = df[c].astype(thetypes[c])
+            else:  # assume str
+                pass
     return df
 
 
@@ -116,7 +113,7 @@ def fmt_sqldtype(x):
     if isinstance(x, str):
         out = x
     elif isinstance(x, pd.Timestamp):
-        out = x.strftime("%Y-%m-%d %H:%M:%S")
+        out = x.strftime(date_fmt)
     else:
         out = str(x)
 
@@ -126,70 +123,98 @@ def fmt_sqldtype(x):
         return "NULL"
 
 
+from datetime import datetime
+import sys
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-i", type=str, nargs="+")
+parser.add_argument("-nodup", type=int,default=1)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     allfiles = args.i
+    nodup=args.nodup
+
     username = "anthon"
     passwd = "1234"
     schema = "public"
+    LOG = {}
 
     engine = create_engine('postgresql://{}:{}@127.0.0.1:5432/patdb'.format(username, passwd))
     D = []
 
     all_tables = get_tables(schema, engine)
-    LOG={}
+
     for fname in allfiles:
         LOG[fname] = []
-        tbl_name = parse("{}{:d}.csv", os.path.basename(fname))[0]
 
+        # infer table name from file
+        stage1 = parse("{}_takecare.csv", os.path.basename(fname))
+        stage2 = parse("{}{:d}", os.path.basename(fname))
+        stage3 = parse("{}.csv", os.path.basename(fname))
+
+        if stage1:
+            tbl_name = "takecare"
+        elif stage2:
+            tbl_name = stage2[0]
+        elif stage3:
+            tbl_name = stage3[0]
+
+        # if the table exists
         if tbl_name in all_tables:
             thetypes = read_types(tbl_name)
 
             thekeys = get_primary_keys(tbl_name, engine)
 
-            with engine.connect() as con:
-                df_existing = pd.read_sql("select * from public.{}".format(tbl_name), con)#.set_index(thekeys)
+            df = read_csv(fname, thetypes)
+            duplicated = df[thekeys[0]][df[thekeys[0]].duplicated()]
 
-            df = read_csv(fname, thetypes) #.set_index(thekeys)
+            if nodup & (duplicated.shape[0] > 0):
+                print(gdate(), fname, "error", "duplicated IDs:\n{}".format(duplicated), file=sys.stderr)
+                sys.exit(1)
+            else:
+                with engine.connect() as con:
+                    df_existing = pd.read_sql("select * from {}.{}".format(schema, tbl_name), con)
 
-            col = ",".join(df.columns)
+                col = ",".join(df.columns)
 
-            # Iterate on the new rows to upload
-            for i in range(df.shape[0]):
-                thekeyvalue = df.loc[i, thekeys[0]]
+                # Iterate on the new rows to upload
+                for i in range(df.shape[0]):
+                    thekeyvalue = df.loc[i, thekeys[0]]
 
-                # Row2dict
-                row = {k: fmt_sqldtype(v) for k, v in df.iloc[i].to_dict().items()}
+                    # Row2dict
+                    row = {k: fmt_sqldtype(v) for k, v in df.iloc[i].to_dict().items()}
 
-                # Find corresponding row based on primary key
-                drow = df_existing[(df_existing[thekeys[0]] == thekeyvalue)]
+                    # Find corresponding row based on primary key
+                    drow = df_existing[(df_existing[thekeys[0]] == thekeyvalue)]
 
-                # Existing row -> dict
-                if drow.shape[0] > 0:
-                    row_exist = {k: fmt_sqldtype(v) for k, v in drow.iloc[0].to_dict().items()}
-                else:
-                    row_exist = {}
+                    # Existing row -> dict
+                    if drow.shape[0] > 0:
+                        row_exist = {k: fmt_sqldtype(v) for k, v in drow.iloc[0].to_dict().items()}
+                    else:
+                        row_exist = {}
 
-                if len(row_exist) == 0:  # Insert
-                    to_update = row
-                    with engine.connect() as con:
-                        query_s = "insert into {}({}) values ({})".format(tbl_name,
-                                                                          ",".join(to_update.keys()),
-                                                                          ",".join(to_update.values()))
-                        con.execute(query_s)
-                        LOG[fname].append(query_s)
-
-                else:  # update
-                    to_update = {k: v for k, v in row.items() if v != row_exist[k]}
-                    if len(to_update) > 0:
+                    if len(row_exist) == 0:  # Insert
+                        to_update = row
                         with engine.connect() as con:
-                            the_update = ",".join(["{}={}".format(k, v) for k, v in to_update.items()])
-                            query_s = "update {} set {} where {}={}".format(tbl_name,
-                                                                            the_update,
-                                                                            thekeys[0],
-                                                                            fmt_sqldtype(thekeyvalue))
+                            query_s = "insert into {}({}) values ({})".format(tbl_name,
+                                                                              ",".join(to_update.keys()),
+                                                                              ",".join(to_update.values()))
                             con.execute(query_s)
-                            LOG[fname].append(query_s)
+                            print(gdate(), fname, "insert", query_s)
+
+                    else:  # update
+                        to_update = {k: v for k, v in row.items() if v != row_exist[k]}
+                        if len(to_update) > 0:
+                            with engine.connect() as con:
+                                the_update = ",".join(["\"{}\"={}".format(k, v) for k, v in to_update.items()])
+                                query_s = "update {} set {} where {}={}".format(tbl_name,
+                                                                                the_update,
+                                                                                thekeys[0],
+                                                                                fmt_sqldtype(thekeyvalue))
+                                con.execute(query_s)
+                                print(gdate(), fname, "update", query_s, file=sys.stderr)
 
         else:
             table_creation_fname = "cfg/{}.cfg".format(tbl_name)
@@ -204,6 +229,18 @@ if __name__ == "__main__":
             thetypes = read_types(tbl_name)
 
             df = read_csv(fname, thetypes)
+
+            list_cols_query="SELECT column_name FROM information_schema.columns " \
+                            "WHERE table_schema = \'{}\' " \
+                            "AND table_name   = \'{}\';".format(schema,tbl_name)
+
+            with engine.connect() as con:
+                all_cols = pd.read_sql(list_cols_query, con).values.reshape(-1).tolist()
+
+            add_cols_query = "ALTER TABLE {} ".format(tbl_name) + ",".join(["add column {} varchar".format("\""+c+"\"") for c in [s for s in df.columns if not (s in all_cols)]])
+
+            with engine.connect() as con:
+                con.execute(add_cols_query)
 
             with engine.connect() as con:
                 df.to_sql(tbl_name,

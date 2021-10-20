@@ -55,9 +55,9 @@ def main(args):
     df = pd.read_csv(fname, sep=";")
     df.rename(columns={date_col: "date", id_col: "local_id"},
               inplace=True)
+
     if not "extra" in df.columns:
         df["extra"] = ""
-
 
     df["key"] = make_tkevt_key(df)
 
@@ -122,10 +122,10 @@ def main(args):
     hash_fun = lambda s: hashlib.sha256(s.encode("utf8")).hexdigest()
     interval_characterization = ["ids__uid", "interval__start", "interval__end"]
     ids__interval__data = out[interval_characterization].applymap(lambda x: str(x)).values
+    out["interval__raw"] = [";".join(l) for l in ids__interval__data]
     out["ids__interval"] = [hash_fun(";".join(l)) for l in ids__interval__data]
     out.to_csv(outfname, sep=";", index=False)
     print("")
-
 
 
 parser = argparse.ArgumentParser(description="Longitudinal data are grouped in chunks.")

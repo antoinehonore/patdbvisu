@@ -109,6 +109,22 @@ def read_csv(fname, thetypes):
     return df
 
 
+def add_columns(df, schema, tbl_name, engine):
+    list_cols_query = "SELECT column_name FROM information_schema.columns " \
+                      "WHERE table_schema = \'{}\' " \
+                      "AND table_name   = \'{}\';".format(schema, tbl_name)
+
+    with engine.connect() as con:
+        all_cols = pd.read_sql(list_cols_query, con).values.reshape(-1).tolist()
+    missing_cols = [s for s in df.columns if not (s in all_cols)]
+    if len(missing_cols) > 0:
+        add_cols_query = "ALTER TABLE {} ".format(tbl_name) + ",".join(
+            ["add column {} varchar".format("\"" + c + "\"") for c in missing_cols])
+        with engine.connect() as con:
+            con.execute(add_cols_query)
+        print(gdate(), "add columns", add_cols_query, file=sys.stderr)
+
+
 def fmt_sqldtype(x):
     if isinstance(x, str):
         out = x
@@ -128,7 +144,7 @@ import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", type=str, nargs="+")
-parser.add_argument("-nodup", type=int,default=1)
+parser.add_argument("-nodup", type=int, default=1)
 
 
 if __name__ == "__main__":
@@ -151,7 +167,7 @@ if __name__ == "__main__":
 
         # infer table name from file
         stage1 = parse("{}_takecare.csv", os.path.basename(fname))
-        stage2 = parse("{}{:d}", os.path.basename(fname))
+        stage2 = parse("{}{:d}.csv", os.path.basename(fname))
         stage3 = parse("{}.csv", os.path.basename(fname))
 
         if stage1:
@@ -174,6 +190,7 @@ if __name__ == "__main__":
                 print(gdate(), fname, "error", "duplicated IDs:\n{}".format(duplicated), file=sys.stderr)
                 sys.exit(1)
             else:
+                add_columns(df,schema,tbl_name,engine)
                 with engine.connect() as con:
                     df_existing = pd.read_sql("select * from {}.{}".format(schema, tbl_name), con)
 
@@ -197,12 +214,15 @@ if __name__ == "__main__":
 
                     if len(row_exist) == 0:  # Insert
                         to_update = row
+                        query_s = "insert into {}({}) values ({})".format(tbl_name,
+                                                                          ",".join(list(
+                                                                              map(lambda s: "\"{}\"".format(s),
+                                                                                  to_update.keys()))),
+                                                                          ",".join(to_update.values()))
                         with engine.connect() as con:
-                            query_s = "insert into {}({}) values ({})".format(tbl_name,
-                                                                              ",".join(to_update.keys()),
-                                                                              ",".join(to_update.values()))
-                            con.execute(query_s)
-                            print(gdate(), fname, "insert", query_s)
+                            con.execute(query_s.replace("%", "%%"))
+
+                        print(gdate(), fname, "insert", query_s)
 
                     else:  # update
                         to_update = {k: v for k, v in row.items() if v != row_exist[k]}
@@ -218,6 +238,7 @@ if __name__ == "__main__":
 
         else:
             table_creation_fname = "cfg/{}.cfg".format(tbl_name)
+
             with open(table_creation_fname, "r") as fp:
                 table_create_stmt = fp.read()
 
@@ -230,18 +251,7 @@ if __name__ == "__main__":
 
             df = read_csv(fname, thetypes)
 
-            list_cols_query="SELECT column_name FROM information_schema.columns " \
-                            "WHERE table_schema = \'{}\' " \
-                            "AND table_name   = \'{}\';".format(schema,tbl_name)
-
-            with engine.connect() as con:
-                all_cols = pd.read_sql(list_cols_query, con).values.reshape(-1).tolist()
-
-            add_cols_query = "ALTER TABLE {} ".format(tbl_name) + ",".join(["add column {} varchar".format("\""+c+"\"") for c in [s for s in df.columns if not (s in all_cols)]])
-
-            with engine.connect() as con:
-                con.execute(add_cols_query)
-
+            add_columns(df, schema, tbl_name, engine)
             with engine.connect() as con:
                 df.to_sql(tbl_name,
                           con=con,

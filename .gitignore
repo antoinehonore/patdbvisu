@@ -1,0 +1,9 @@
+*.log
+pyenv/
+.idea/
+data/
+dbfiles/
+__pycache__
+*.types
+envpy
+log/

@@ -119,7 +119,7 @@ def add_columns(df, schema, tbl_name, engine):
     missing_cols = [s for s in df.columns if not (s in all_cols)]
     if len(missing_cols) > 0:
         add_cols_query = "ALTER TABLE {} ".format(tbl_name) + ",".join(
-            ["add column {} varchar".format("\"" + c + "\"") for c in missing_cols])
+            ["add column {} varchar".format("\"" + c.replace("%","%%") + "\"") for c in missing_cols])
         with engine.connect() as con:
             con.execute(add_cols_query)
         print(gdate(), "add columns", add_cols_query, file=sys.stderr)
@@ -164,9 +164,9 @@ if __name__ == "__main__":
 
     for fname in allfiles:
         LOG[fname] = []
-        bname=os.path.basename(fname)
+        bname = os.path.basename(fname)
 
-        # infer table name from file
+        # Infer table name from file
         stage1 = parse("{}_takecare.csv", bname)
         stage2 = parse("{}{:d}.csv", bname)
         stage3 = parse("HF__{}.csv", bname)
@@ -188,22 +188,26 @@ if __name__ == "__main__":
             sys.exit(1)
 
 
-        # if the table exists
+        # If the table exists
         if tbl_name in all_tables:
+            # Find the types
             thetypes = read_types(tbl_name)
 
+            # Find the keys, (right now ids__uid or ids__interval)
             thekeys = get_primary_keys(tbl_name, engine)
 
+            # Read data
             df = read_csv(fname, thetypes)
+
+            # Find duplicated indexes
             duplicated = df[thekeys[0]][df[thekeys[0]].duplicated()]
 
             if nodup & (duplicated.shape[0] > 0):
                 print(gdate(), fname, "error", "duplicated IDs:\n{}".format(duplicated), file=sys.stderr)
                 sys.exit(1)
             else:
-                add_columns(df,schema,tbl_name,engine)
-                with engine.connect() as con:
-                    df_existing = pd.read_sql("select * from {}.{}".format(schema, tbl_name), con)
+                # Add a column if the existing db is missing one
+                add_columns(df, schema, tbl_name, engine)
 
                 col = ",".join(df.columns)
 
@@ -211,11 +215,19 @@ if __name__ == "__main__":
                 for i in range(df.shape[0]):
                     thekeyvalue = df.loc[i, thekeys[0]]
 
+                    # Download the existing data
+                    with engine.connect() as con:
+                        drow = pd.read_sql("select * from {}.{} where {} like \'%%{}%%\'".format(schema,
+                                                                                                 tbl_name,
+                                                                                                 thekeys[0],
+                                                                                                 thekeyvalue),
+                                           con)
+
                     # Row2dict
                     row = {k: fmt_sqldtype(v) for k, v in df.iloc[i].to_dict().items()}
 
                     # Find corresponding row based on primary key
-                    drow = df_existing[(df_existing[thekeys[0]] == thekeyvalue)]
+                    #drow = df_existing[(df_existing[thekeys[0]] == thekeyvalue)]
 
                     # Existing row -> dict
                     if drow.shape[0] > 0:

@@ -164,18 +164,29 @@ if __name__ == "__main__":
 
     for fname in allfiles:
         LOG[fname] = []
+        bname=os.path.basename(fname)
 
         # infer table name from file
-        stage1 = parse("{}_takecare.csv", os.path.basename(fname))
-        stage2 = parse("{}{:d}.csv", os.path.basename(fname))
-        stage3 = parse("{}.csv", os.path.basename(fname))
+        stage1 = parse("{}_takecare.csv", bname)
+        stage2 = parse("{}{:d}.csv", bname)
+        stage3 = parse("HF__{}.csv", bname)
+        stage4 = parse("LF__{}.csv", bname)
+        stage5 = parse("{}.csv", bname)
 
         if stage1:
             tbl_name = "takecare"
         elif stage2:
             tbl_name = stage2[0]
         elif stage3:
-            tbl_name = stage3[0]
+            tbl_name = "monitorhf"
+        elif stage4:
+            tbl_name = "monitorlf"
+        elif stage5:
+            tbl_name = stage5[0]
+        else:
+            print("Could not infer tbl_name for",bname,file=sys.stderr)
+            sys.exit(1)
+
 
         # if the table exists
         if tbl_name in all_tables:
@@ -214,15 +225,18 @@ if __name__ == "__main__":
 
                     if len(row_exist) == 0:  # Insert
                         to_update = row
+                        thevalues=",".join(to_update.values())
                         query_s = "insert into {}({}) values ({})".format(tbl_name,
                                                                           ",".join(list(
                                                                               map(lambda s: "\"{}\"".format(s),
                                                                                   to_update.keys()))),
-                                                                          ",".join(to_update.values()))
+                                                                          thevalues)
                         with engine.connect() as con:
                             con.execute(query_s.replace("%", "%%"))
 
-                        print(gdate(), fname, "insert", query_s)
+                        infoprint = query_s if len(query_s) < 1000 else query_s.replace(thevalues,
+                                                                                        "****************<Too long>****************")
+                        print(gdate(), fname, "update", infoprint, file=sys.stderr)
 
                     else:  # update
                         to_update = {k: v for k, v in row.items() if v != row_exist[k]}
@@ -234,7 +248,8 @@ if __name__ == "__main__":
                                                                                 thekeys[0],
                                                                                 fmt_sqldtype(thekeyvalue))
                                 con.execute(query_s)
-                                print(gdate(), fname, "update", query_s, file=sys.stderr)
+                                infoprint=query_s if len(query_s)<1000 else query_s.replace(the_update,"****************<Too long>****************")
+                                print(gdate(), fname, "update",infoprint , file=sys.stderr)
 
         else:
             table_creation_fname = "cfg/{}.cfg".format(tbl_name)

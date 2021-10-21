@@ -1,15 +1,16 @@
 from unidecode import unidecode
 import re
-
-
 import argparse
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 from utils import gdate
-import sys,os
+import sys
+import os
 from sqlalchemy import create_engine
 import hashlib
+import base64
+import zlib
 
 
 def agg_tk(col):
@@ -28,9 +29,18 @@ def aggregate_tk_data(d, ichunk):
     out = d.apply(agg_tk, result_type="reduce").to_frame()
     out = pd.DataFrame(columns=out.index, data=out.values.reshape(1,-1),index=[ichunk])
     return out
+
+def aggregate_mon_data(d, ichunk, signame="here", bedlabel="unknown",unitname="unknown"):
+    out = pd.DataFrame(columns=[signame], data=np.array([compress_chunk(d)]).reshape(1,-1),index=[ichunk])
+    out["bedlabel"] = bedlabel
+    out["unitname"] = unitname
+    return out
+
+
 def procrow(row):
     row[row == "1"] = row["date"]
     return row
+
 
 def make_tkevt_key(data):
     return data["event"] + "/" + data["specificities"] + "/" + data["notes"]
@@ -47,7 +57,6 @@ def format_tkevt_string(s):
         .replace("days__with__antibiotics", "d_w_antibio")
 
 
-
 def prep(args):
     infname = args.i
     outfname = args.o
@@ -59,32 +68,19 @@ def prep(args):
     df.replace(";", "", regex=True).replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
 
 
-def chunk(args):
-    fname = args.i
-    outfname = args.o
-    period = args.p
-    date_col = args.date
-    id_col = args.id
 
-    df = pd.read_csv(fname, sep=";")
-    df.rename(columns={date_col: "date", id_col: "local_id"},
-              inplace=True)
+def compress_chunk(d):
+    if d.empty:
+        c = compress_string(pd.DataFrame().to_csv(None, sep=";", index=False))
+    else:
+        c = compress_string(d.to_csv(None, sep=";", index=False))
+    return c
 
-    if not "extra" in df.columns:
-        df["extra"] = ""
+def compress_string(s):
+    return base64.b64encode(zlib.compress(s.encode("utf8"))).decode("utf8")
 
-    df["key"] = make_tkevt_key(df)
 
-    df = pd.concat([df[["local_id", "date", "extra"]],
-                    pd.get_dummies(df["key"], prefix=args.cpref, prefix_sep="__")],
-                    axis=1).astype(str)
-
-    local_id = df.local_id.unique()[0]
-
-    df = df.replace("0", np.nan)
-    df = df.apply(procrow, axis=1)
-
-    df.columns = list(map(format_tkevt_string, df.columns))
+def chunk_fun(df, agg_fun, local_id):
     df["date"] = pd.to_datetime(df["date"])
     start_date = df["date"].min()
     end_date = df["date"].max()
@@ -102,14 +98,71 @@ def chunk(args):
     out = pd.DataFrame()
     for i_interv, (start, end) in enumerate(intervals):
         chunk = df[(df["date"] >= start).values & (df["date"] < end).values]
-        tmp_chunk = aggregate_tk_data(chunk, ichunk=i_interv + 1)
+
+        tmp_chunk = agg_fun(chunk, ichunk=i_interv + 1)
+
         tmp_chunk["interval__start"] = start
         tmp_chunk["interval__end"] = end
-        tmp_chunk.drop(columns=["date"], inplace=True)
+        if "date" in tmp_chunk.columns:
+            tmp_chunk.drop(columns=["date"], inplace=True)
+
+        if not ("local_id" in tmp_chunk.columns):
+            tmp_chunk["local_id"] = local_id
         out = out.append(tmp_chunk, sort=True)
 
     first_cols = ["local_id", "interval__start", "interval__end"]
     out = out[first_cols + [s for s in out.columns if not (s in first_cols)]]
+    return out
+
+
+from functools import partial
+
+
+def chunk(args):
+    fname = args.i
+    outfname = args.o
+    period = args.p
+    date_col = args.date
+    id_col = args.id
+    map_tbl = args.maptbl
+    bname = os.path.basename(fname)
+
+    if bname.startswith("LF__") or bname.startswith("HF__"):
+        df = pd.read_csv(fname,
+                         sep=";",
+                         names=["date", "data"]
+                         )
+        df["local_id"] = os.path.basename(os.path.dirname(fname))
+        id_col = "monid"
+        map_tbl = "monitor_meta"
+        s = bname.replace(".csv", "").split("__")
+        signame = "__".join(s[:-2])
+        bedlabel = s[-2]
+        unitname = s[-1]
+
+        agg_fun = partial(aggregate_mon_data, signame=signame, bedlabel=bedlabel,unitname=unitname)
+
+    elif "_takecare" in bname:
+        df = pd.read_csv(fname, sep=";")
+
+        df.rename(columns={date_col: "date", id_col: "local_id"},
+                  inplace=True)
+
+        df["key"] = make_tkevt_key(df)
+
+        df = pd.concat([df[["local_id", "date", "extra"]],
+                        pd.get_dummies(df["key"], prefix=args.cpref, prefix_sep="__")],
+                        axis=1).astype(str)
+
+        df = df.replace("0", np.nan)
+        df = df.apply(procrow, axis=1)
+
+        df.columns = list(map(format_tkevt_string, df.columns))
+        agg_fun = aggregate_tk_data
+
+    local_id = df.local_id.unique()[0]
+
+    out = chunk_fun(df, agg_fun, local_id)
 
     username = "anthon"
     passwd = "1234"
@@ -119,7 +172,7 @@ def chunk(args):
 
     # Find the ids__uid
     with engine.connect() as con:
-        tmp = pd.read_sql("select ids__uid from overview where {} like \'%%{}%%\'".format(id_col, local_id), con)
+        tmp = pd.read_sql("select distinct ids__uid from {} where {} like \'%%{}%%\'".format(map_tbl, id_col, local_id), con)
 
     if tmp.shape[0] == 0:
         print(gdate(), "error", "local_id:{} not found in overview.".format(local_id), file=sys.stderr)
@@ -129,7 +182,7 @@ def chunk(args):
         print(gdate(), "error", "local_id:{} found more than once in overview.".format(local_id), file=sys.stderr)
         sys.exit(1)
 
-    ids__uid=tmp["ids__uid"].iloc[0]
+    ids__uid = tmp["ids__uid"].iloc[0]
     out["ids__uid"] = ids__uid
     out.drop(columns=["local_id"], inplace=True)
 
@@ -148,11 +201,15 @@ parser.add_argument("-id", type=str, default="tkid")
 parser.add_argument("-date", type=str, default="date")
 parser.add_argument("-p", type=str, default="days")
 parser.add_argument("-cpref", type=str, default="tkevt", help="column prefix")
+parser.add_argument("-maptbl", type=str, default="overview", help="table containing mapping local_id, ids__uid")
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
-    if "_takecare.csv" in args.i:
+    bname = os.path.basename(args.i)
+    os.makedirs(os.path.dirname(args.o), exist_ok=True)
+    if ("_takecare.csv" in bname) or bname.startswith("HF__") or bname.startswith("LF__"):
         chunk(args)
     else:
         prep(args)
+

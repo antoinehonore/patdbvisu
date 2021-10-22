@@ -1,13 +1,9 @@
-
-
-
 import argparse
 import pandas as pd
-from sqlalchemy import create_engine
 
 from parse import parse
 import os
-from utils import gdate, date_fmt
+from utils import gdate, date_fmt, get_engine
 
 
 
@@ -143,18 +139,23 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-i", type=str, nargs="+")
 parser.add_argument("-nodup", type=int, default=1)
 
+import json
+def get_dbcfg(fname):
+    with open(fname,"rb") as fp:
+        dbcfg=json.load(fp)
+    return dbcfg
 
 if __name__ == "__main__":
     args = parser.parse_args()
     allfiles = args.i
     nodup = args.nodup
 
-    username = "anthon"
-    passwd = "1234"
-    schema = "public"
     LOG = {}
+    dbcfg = get_dbcfg("cfg/db.cfg")
 
-    engine = create_engine('postgresql://{}:{}@127.0.0.1:5432/patdb'.format(username, passwd))
+    engine = get_engine(verbose=True, **dbcfg)
+    schema = dbcfg["schema"]
+
     D = []
 
     all_tables = get_tables(schema, engine)
@@ -188,6 +189,8 @@ if __name__ == "__main__":
             sys.exit(1)
 
         cfg_stem = tbl_name
+
+        engine = get_engine(root_folder="/opt/psql", username="remotedbuser")
 
         # If the table exists
         if tbl_name in all_tables:

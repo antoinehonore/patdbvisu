@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from utils import gdate
+from utils import gdate, date_fmt
 import sys
 import os
 from sqlalchemy import create_engine
@@ -12,6 +12,17 @@ import hashlib
 import base64
 import zlib
 
+
+from functools import partial
+
+def mondata_test(bname):
+    return bname.startswith("LF__") or bname.startswith("HF__")
+
+def tkdata_test(bname):
+    return "_takecare" in bname
+
+def clindata_test(bname):
+    return parse("{}_read_{}.csv", bname)
 
 def agg_tk(col):
     if col.shape[0]==0 or col.isna().all():
@@ -23,6 +34,74 @@ def agg_tk(col):
             return "__".join([v for v in col.values if isinstance(v, str)])
         else:
             return "___".join([col.name+"@"+v for v in col.values.astype(str) if v!="nan"])
+
+
+def register_change_num(d, ichunk=None,data_col=None):
+    thevars = [s for s in list(d) if s in data_col]
+    out = {}
+
+    for thevar in thevars:
+        chg = ((d[thevar] != d[thevar].shift(1)).cumsum() - 1)
+        all_chg = chg.unique()
+        registered = []
+        for i in range(len(all_chg)):
+            # l.append((d[chg == all_chg[i]]["respirator"].unique()[0], d[chg == all_chg[i]]["Tid"].max()-d[chg == all_chg[i]]["Tid"].min()))
+            registered.append("__".join(list(map(str, (d[chg == all_chg[i]][thevar].unique()[0],
+                                                       datetime.strftime(d[chg == all_chg[i]]["date"].min(), date_fmt))))))
+        out[thevar] = "___".join([r for r in registered if not "nan" in r])
+
+    out_df = pd.DataFrame(columns=list(out.keys()), data=np.array(list(out.values())).reshape(1, -1), index=[ichunk])
+    return out_df
+
+
+def register_values(d,ichunk=None,data_col=None):
+    thevars = [s for s in list(d) if s in data_col]
+    out = {}
+
+    for thevar in thevars:
+        chg = d[["date"]+[thevar]][d[thevar].notna()]
+        out[thevar] = "___".join(["__".join([str(ll[1]),datetime.strftime(ll[0],date_fmt)]) for ll in chg.values])
+
+    out_df = pd.DataFrame(columns=list(out.keys()), data=np.array(list(out.values())).reshape(1, -1), index=[ichunk])
+    out_df.replace({"":np.nan},inplace=True)
+    return out_df
+
+def aggregate_clin_data(d, ichunk):
+    l = list(d)
+
+    data_col = [ll for ll in l if (ll != "date") and (ll != "tkid") and \
+                                  (ll != "local_id") and (ll != "lab_empty")\
+                                    and (ll != "vatska_givet_empty")]
+
+    out_data_col = data_col
+
+    if ("fio2" in l) or ("ppeak" in l) or ('tempaxil' in l) or any("lab_" in ll for ll in l) or ("cirk_vikt" in l):
+        out_tmp = register_change_num(d, ichunk=ichunk, data_col=data_col)
+        out = pd.DataFrame(columns=out_data_col, data=out_tmp.values.reshape(1, -1), index=[ichunk])
+
+    elif any("lm_givet" in ll for ll in l) or any("vatska" in ll for ll in l):
+        out_tmp = register_values(d, ichunk=ichunk, data_col=data_col)
+        out = pd.DataFrame(columns=out_data_col, data=out_tmp.values.reshape(1, -1), index=[ichunk])
+
+    elif ("respirator" in l):
+        out = register_change_resp(d, ichunk=ichunk, data_col=data_col)
+
+    return out
+
+
+def register_change_resp(d,ichunk=None,data_col=None):
+    chg = ((d["respirator"] != d["respirator"].shift(1)).cumsum() - 1)
+    all_chg = chg.unique()
+    l = []
+    for i in range(len(all_chg)):
+        # l.append((d[chg == all_chg[i]]["respirator"].unique()[0], d[chg == all_chg[i]]["Tid"].max()-d[chg == all_chg[i]]["Tid"].min()))
+        l.append((d[chg == all_chg[i]]["respirator"].unique()[0], d[chg == all_chg[i]]["date"].min()))
+    out = {"{}_{}".format("respirator", k): "" for k in list(set([ll[0] for ll in l]))}
+    for ll in l:
+        out["{}_{}".format("respirator", ll[0])] += datetime.strftime(ll[1], date_fmt) + "__"
+    out_df = pd.DataFrame(columns=list(out.keys()), data=np.array(list(out.values())).reshape(1, -1), index=[ichunk])
+
+    return out_df
 
 
 def aggregate_tk_data(d, ichunk):
@@ -115,9 +194,6 @@ def chunk_fun(df, agg_fun, local_id):
     return out
 
 
-from functools import partial
-
-
 def chunk(args):
     fname = args.i
     outfname = args.o
@@ -125,9 +201,10 @@ def chunk(args):
     date_col = args.date
     id_col = args.id
     map_tbl = args.maptbl
+
     bname = os.path.basename(fname)
 
-    if bname.startswith("LF__") or bname.startswith("HF__"):
+    if mondata_test(bname):
         df = pd.read_csv(fname,
                          sep=";",
                          names=["date", "data"]
@@ -142,10 +219,11 @@ def chunk(args):
 
         agg_fun = partial(aggregate_mon_data, signame=signame, bedlabel=bedlabel,unitname=unitname)
 
-    elif "_takecare" in bname:
+    elif tkdata_test(bname):
         df = pd.read_csv(fname, sep=";")
 
-        df.rename(columns={date_col: "date", id_col: "local_id"},
+        df.rename(columns={date_col: "date",
+                           id_col: "local_id"},
                   inplace=True)
 
         df["key"] = make_tkevt_key(df)
@@ -160,6 +238,16 @@ def chunk(args):
         df.columns = list(map(format_tkevt_string, df.columns))
         agg_fun = aggregate_tk_data
 
+    elif clindata_test(bname):
+        df = pd.read_csv(fname, sep=";")
+        id_col="clinid"
+        map_tbl="overview"
+
+        df.rename(columns={"Tid": "date", id_col: "local_id"},
+                  inplace=True)
+
+        print("")
+        agg_fun = aggregate_clin_data
     local_id = df.local_id.unique()[0]
 
     out = chunk_fun(df, agg_fun, local_id)
@@ -203,12 +291,13 @@ parser.add_argument("-p", type=str, default="days")
 parser.add_argument("-cpref", type=str, default="tkevt", help="column prefix")
 parser.add_argument("-maptbl", type=str, default="overview", help="table containing mapping local_id, ids__uid")
 
+from parse import parse
 
 if __name__ == "__main__":
     args = parser.parse_args()
     bname = os.path.basename(args.i)
     os.makedirs(os.path.dirname(args.o), exist_ok=True)
-    if ("_takecare.csv" in bname) or bname.startswith("HF__") or bname.startswith("LF__"):
+    if tkdata_test(bname) or mondata_test(bname) or clindata_test(bname):
         chunk(args)
     else:
         prep(args)

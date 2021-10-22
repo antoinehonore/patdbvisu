@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 
 from parse import parse
 import os
-from utils import gdate
+from utils import gdate, date_fmt
 
 
 
@@ -90,9 +90,6 @@ def read_types(tbl_name):
     return thetypes
 
 
-date_fmt="%Y-%m-%d %H:%M:%S"
-
-
 def read_csv(fname, thetypes):
     df = pd.read_csv(fname, sep=";")
     if not (thetypes is None):
@@ -150,7 +147,7 @@ parser.add_argument("-nodup", type=int, default=1)
 if __name__ == "__main__":
     args = parser.parse_args()
     allfiles = args.i
-    nodup=args.nodup
+    nodup = args.nodup
 
     username = "anthon"
     passwd = "1234"
@@ -168,25 +165,29 @@ if __name__ == "__main__":
 
         # Infer table name from file
         stage1 = parse("{}_takecare.csv", bname)
-        stage2 = parse("{}{:d}.csv", bname)
-        stage3 = parse("HF__{}.csv", bname)
-        stage4 = parse("LF__{}.csv", bname)
-        stage5 = parse("{}.csv", bname)
+        stage2 = parse("HF__{}.csv", bname)
+        stage3 = parse("LF__{}.csv", bname)
+        stage4 = parse("{}_read_{}.csv", bname)
+        stage5 = parse("{}{:d}.csv", bname)
+        stage6 = parse("{}.csv", bname)
 
         if stage1:
             tbl_name = "takecare"
         elif stage2:
-            tbl_name = stage2[0]
-        elif stage3:
             tbl_name = "monitorhf"
-        elif stage4:
+        elif stage3:
             tbl_name = "monitorlf"
+        elif stage4:
+            tbl_name = stage4[1]
         elif stage5:
             tbl_name = stage5[0]
+        elif stage6:
+            tbl_name = stage6[0]
         else:
-            print("Could not infer tbl_name for",bname,file=sys.stderr)
+            print("Could not infer tbl_name for", bname, file=sys.stderr)
             sys.exit(1)
 
+        cfg_stem = tbl_name
 
         # If the table exists
         if tbl_name in all_tables:
@@ -260,11 +261,11 @@ if __name__ == "__main__":
                                                                                 thekeys[0],
                                                                                 fmt_sqldtype(thekeyvalue))
                                 con.execute(query_s)
-                                infoprint=query_s if len(query_s)<1000 else query_s.replace(the_update,"****************<Too long>****************")
-                                print(gdate(), fname, "update",infoprint , file=sys.stderr)
+                                infoprint = query_s if len(query_s) < 1000 else query_s.replace(the_update,"****************<Too long>****************")
+                                print(gdate(), fname, "update", infoprint, file=sys.stderr)
 
         else:
-            table_creation_fname = "cfg/{}.cfg".format(tbl_name)
+            table_creation_fname = "cfg/{}.cfg".format(cfg_stem)
 
             with open(table_creation_fname, "r") as fp:
                 table_create_stmt = fp.read()

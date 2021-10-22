@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from utils import gdate, date_fmt
+from utils import gdate, date_fmt, get_engine, get_dbcfg, pidprint
 import sys
 import os
 from sqlalchemy import create_engine
@@ -248,15 +248,18 @@ def chunk(args):
 
         print("")
         agg_fun = aggregate_clin_data
+    if df.shape[0] == 0:
+        pidprint("Empty input file", fname, flag="error")
+        sys.exit(1)
+
     local_id = df.local_id.unique()[0]
 
     out = chunk_fun(df, agg_fun, local_id)
 
-    username = "anthon"
-    passwd = "1234"
-    schema = "public"
+    LOG = {}
+    dbcfg = get_dbcfg("cfg/db.cfg")
 
-    engine = create_engine('postgresql://{}:{}@127.0.0.1:5432/patdb'.format(username, passwd))
+    engine = get_engine(verbose=False, **dbcfg)
 
     # Find the ids__uid
     with engine.connect() as con:

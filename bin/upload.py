@@ -3,7 +3,7 @@ import pandas as pd
 
 from parse import parse
 import os
-from utils import gdate, date_fmt, get_engine,pidprint
+from utils import gdate, date_fmt, get_engine,pidprint, get_dbcfg
 
 
 
@@ -138,12 +138,6 @@ import sys
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", type=str, nargs="+")
 parser.add_argument("-nodup", type=int, default=1)
-
-import json
-def get_dbcfg(fname):
-    with open(fname,"rb") as fp:
-        dbcfg=json.load(fp)
-    return dbcfg
 
 if __name__ == "__main__":
     args = parser.parse_args()

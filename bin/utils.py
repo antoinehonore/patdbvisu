@@ -3,6 +3,7 @@ import os
 from sqlalchemy import create_engine
 import sys
 
+import json
 date_fmt="%Y-%m-%d %H:%M:%S"
 
 
@@ -31,6 +32,11 @@ def read_passwd(username: str = "remotedbuser", root_folder: str = ".") -> str:
         s = f.read().strip()
     return s
 
+
+def get_dbcfg(fname):
+    with open(fname,"rb") as fp:
+        dbcfg=json.load(fp)
+    return dbcfg
 
 def get_engine(username: str = "remotedbuser", root_folder: str = ".", nodename: str = "client", schema=None,dbname:str="remotedb", verbose=False):
     """

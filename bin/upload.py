@@ -3,7 +3,7 @@ import pandas as pd
 
 from parse import parse
 import os
-from utils import gdate, date_fmt, get_engine
+from utils import gdate, date_fmt, get_engine,pidprint
 
 
 
@@ -126,7 +126,7 @@ def fmt_sqldtype(x):
     else:
         out = str(x)
 
-    if not any([s == out for s in ["-", "nan", ".","NULL","None"]]):
+    if not any([s == out for s in ["-", "nan", ".","NULL","None","NaT"]]):
         return "\'{}\'".format(out)
     else:
         return "NULL"
@@ -153,11 +153,10 @@ if __name__ == "__main__":
     LOG = {}
     dbcfg = get_dbcfg("cfg/db.cfg")
 
-    engine = get_engine(verbose=True, **dbcfg)
+    engine = get_engine(verbose=False, **dbcfg)
     schema = dbcfg["schema"]
 
     D = []
-
     all_tables = get_tables(schema, engine)
 
     for fname in allfiles:
@@ -189,8 +188,6 @@ if __name__ == "__main__":
             sys.exit(1)
 
         cfg_stem = tbl_name
-
-        engine = get_engine(root_folder="/opt/psql", username="remotedbuser")
 
         # If the table exists
         if tbl_name in all_tables:
@@ -252,7 +249,7 @@ if __name__ == "__main__":
 
                         infoprint = query_s if len(query_s) < 1000 else query_s.replace(thevalues,
                                                                                         "****************<Too long>****************")
-                        print(gdate(), fname, "update", infoprint, file=sys.stderr)
+                        pidprint(fname, "update", infoprint, flag="report")
 
                     else:  # update
                         to_update = {k: v for k, v in row.items() if v != row_exist[k]}
@@ -265,7 +262,7 @@ if __name__ == "__main__":
                                                                                 fmt_sqldtype(thekeyvalue))
                                 con.execute(query_s)
                                 infoprint = query_s if len(query_s) < 1000 else query_s.replace(the_update,"****************<Too long>****************")
-                                print(gdate(), fname, "update", infoprint, file=sys.stderr)
+                                pidprint(fname, "update", infoprint, flag="report")
 
         else:
             table_creation_fname = "cfg/{}.cfg".format(cfg_stem)

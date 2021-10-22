@@ -32,7 +32,7 @@ def read_passwd(username: str = "remotedbuser", root_folder: str = ".") -> str:
     return s
 
 
-def get_engine(username: str = "remotedbuser", root_folder: str = ".", nodename: str = "client", dbname:str="remotedb", verbose=False):
+def get_engine(username: str = "remotedbuser", root_folder: str = ".", nodename: str = "client", schema=None,dbname:str="remotedb", verbose=False):
     """
     Get a database `sqlalchemy.engine` object for the user `username`, using ssl certificates specific for 'nodenames' type machines.
     For details about the database engine object see `sqlalchemy.create_engine`

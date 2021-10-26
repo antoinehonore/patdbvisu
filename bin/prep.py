@@ -266,17 +266,18 @@ def chunk(args):
         tmp = pd.read_sql("select distinct ids__uid from {} where {} like \'%%{}%%\'".format(map_tbl, id_col, local_id), con)
 
     if tmp.shape[0] == 0:
-        print(gdate(), "error", "local_id:{} not found in overview.".format(local_id), file=sys.stderr)
+        pidprint("local_id:{} not found in overview.".format(local_id), flag="error")
         sys.exit(1)
 
     elif tmp.shape[0] > 1:
-        print(gdate(), "error", "local_id:{} found more than once in overview.".format(local_id), file=sys.stderr)
+        pidprint("local_id:{} found more than once in overview.".format(local_id), flag="error")
         sys.exit(1)
 
     ids__uid = tmp["ids__uid"].iloc[0]
     out["ids__uid"] = ids__uid
     out.drop(columns=["local_id"], inplace=True)
 
+    #Encode the interval info
     hash_fun = lambda s: hashlib.sha256(s.encode("utf8")).hexdigest()
     interval_characterization = ["ids__uid", "interval__start", "interval__end"]
     ids__interval__data = out[interval_characterization].applymap(lambda x: str(x)).values

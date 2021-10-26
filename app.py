@@ -12,13 +12,19 @@ from dash.exceptions import PreventUpdate
 
 dbcfg = get_dbcfg("cfg/db.cfg")
 
+# Overwrting some CSS default styles
 style_tbl=dict(
+    filter_action="native",
+    sort_action="native",
+    sort_mode="multi",
 style_cell_conditional = [
-                             {
-                                 'if': {'column_id': c},
-                                 'textAlign': 'left'
-                             } for c in ['Date', 'Region']
-                         ],
+            {'if': {'state': 'active'},
+                'backgroundColor': 'rgba(0, 116, 217, 0.3)'
+            },
+            { 'if': { 'state': 'selected'},
+            'backgroundColor': 'rgba(0, 116, 217, 0.3)'
+            },
+    ],
 style_data = {
                  'color': 'black',
                  'backgroundColor': 'white'
@@ -33,32 +39,46 @@ style_header = {
     'backgroundColor': 'rgb(210, 210, 210)',
     'color': 'black',
     'fontWeight': 'bold'
-}
-)
+})
+
+
 engine = get_engine(verbose=False, **dbcfg)
 
 app = dash.Dash(
-    __name__, external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
-#external_stylesheets=[dbc.themes.BOOTSTRAP])
-
+    __name__,
+    external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
 
 app.layout = html.Div([
                 html.Div([
                     html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-                    html.H4("Latest update"),
-                    html.H5("-", id="update-status"),
-                    html.Button('Refresh', id='show-secret')
-                ]),
-            html.Div(id='body-div'),
+                    ]),
+                html.Div([
+                    html.Button('Refresh', id='show-secret'),
+                    ], ),
+                html.Div([
+                    html.P("Latest update: "),
+                    html.P("-", id="update-status")
+                ], className="two columns"),
+                html.Div([
+                    html.P("Database size: "),
+                    html.P(id="dbinfo")
+                    ]),
+                html.Div(id='body-div'),
+
             ])
 
+
+def get_db_size():
+    with engine.connect() as con:
+        d = pd.read_sql("select pg_size_pretty(pg_database_size(\'patdb\'))",con)
+    return d.loc[0, "pg_size_pretty"]
 
 
 def gentbl(df):
     return dt.DataTable(id='table',
                         columns=[{"name": i, "id": i} for i in df.columns],
                         data=df.to_dict('records'),
-                        **style_tbl, page_size=10, style_table={'overflowX': 'auto'})
+                         **style_tbl, page_size=10, style_table={'overflowX': 'auto'})
 
 def get_update_status(e):
     return "{} ({} ms)".format(gdate(), round(e*1000, 1))
@@ -68,6 +88,7 @@ from datetime import datetime
 @app.callback(
     Output(component_id='body-div', component_property='children'),
     Output(component_id="update-status", component_property="children"),
+    Output(component_id="dbinfo", component_property="children"),
     Input(component_id='show-secret', component_property='n_clicks')
 )
 def update_output(n_clicks):
@@ -82,7 +103,7 @@ def update_output(n_clicks):
 
         elapsed = (datetime.now() - start_).total_seconds()
 
-        return out, get_update_status(elapsed)
+        return out, get_update_status(elapsed), get_db_size()
 
 
 if __name__ == "__main__":

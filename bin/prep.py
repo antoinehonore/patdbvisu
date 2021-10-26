@@ -136,14 +136,33 @@ def format_tkevt_string(s):
         .replace("days__with__antibiotics", "d_w_antibio")
 
 
+def read_summaries(fname):
+    d = pd.read_csv(fname,
+                    sep=";",
+                    names=["monid", "signame", "start", "end", "duration", "gap_str"],
+                    parse_dates=True,
+                    infer_datetime_format=True)
+    return d
+
+
 def prep(args):
     infname = args.i
     outfname = args.o
 
     rx = re.compile('\W+')
+    if infname.endswith(".xlsx"):
+        df = pd.read_excel(infname)
+    else:
+        df = read_summaries(infname)
 
-    df = pd.read_excel(infname)
     df.columns = [rx.sub(' ', unidecode(s.strip())).strip().lower().replace(" ", "_") for s in df.columns]
+    if "monitor_meta" in os.path.basename(infname):
+        df["bedlabel"] = df["signame"].apply(lambda s:s.split("__")[-2])
+        df["clinicalunit"] = df["signame"].apply(lambda s: s.split("__")[-1])
+        df["signame"] = df["signame"].apply(lambda s: "__".join(s.split("__")[:-2]))
+        df.rename(columns={"personnummer":"ids__uid", "start":"thestart","end":"theend"},inplace=True)
+        df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str']]
+
     df.replace(";", "", regex=True).replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
 
 
@@ -210,8 +229,9 @@ def chunk(args):
                          names=["date", "data"]
                          )
         df["local_id"] = os.path.basename(os.path.dirname(fname))
+        dname=os.path.basename(os.path.dirname(fname)).split("_pat")[0]
         id_col = "monid"
-        map_tbl = "monitor_meta"
+        map_tbl = dname.replace("-", "") + "__monitor_meta"
         s = bname.replace(".csv", "").split("__")
         signame = "__".join(s[:-2])
         bedlabel = s[-2]
@@ -248,6 +268,7 @@ def chunk(args):
 
         print("")
         agg_fun = aggregate_clin_data
+
     if df.shape[0] == 0:
         pidprint("Empty input file", fname, flag="error")
         sys.exit(1)

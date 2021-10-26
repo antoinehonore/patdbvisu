@@ -54,7 +54,7 @@ app.layout = html.Div([
                     ]),
                 html.Div([
                     html.Button('Refresh', id='show-secret'),
-                    ], ),
+                    ], className="two columns"),
                 html.Div([
                     html.P("Latest update: "),
                     html.P("-", id="update-status")

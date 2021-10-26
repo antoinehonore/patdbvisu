@@ -159,23 +159,26 @@ if __name__ == "__main__":
 
         # Infer table name from file
         stage1 = parse("{}_takecare.csv", bname)
-        stage2 = parse("HF__{}.csv", bname)
-        stage3 = parse("LF__{}.csv", bname)
-        stage4 = parse("{}_read_{}.csv", bname)
-        stage5 = parse("{}{:d}.csv", bname)
-        stage6 = parse("{}.csv", bname)
+        stage2= parse("{}_monitor_meta_details.csv", bname)
+        stage3 = parse("HF__{}.csv", bname)
+        stage4 = parse("LF__{}.csv", bname)
+        stage5 = parse("{}_read_{}.csv", bname)
+        stage6 = parse("{}{:d}.csv", bname)
+        stage7 = parse("{}.csv", bname)
 
         if stage1:
             tbl_name = "takecare"
-        elif stage2:
-            tbl_name = "monitorhf"
+        if stage2:
+            tbl_name = "monitor_meta"
         elif stage3:
-            tbl_name = "monitorlf"
+            tbl_name = "monitorhf"
         elif stage4:
-            tbl_name = stage4[1]
+            tbl_name = "monitorlf"
         elif stage5:
-            tbl_name = stage5[0]
+            tbl_name = stage4[1]
         elif stage6:
+            tbl_name = stage5[0]
+        elif stage7:
             tbl_name = stage6[0]
         else:
             print("Could not infer tbl_name for", bname, file=sys.stderr)

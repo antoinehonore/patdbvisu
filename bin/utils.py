@@ -11,6 +11,12 @@ def gdate(date_fmt="%Y-%m-%d %H:%M:%S"):
     return datetime.now().strftime(date_fmt)
 
 
+def mon_sig_name_fix(s):
+    # Fix names
+    return s.lower().replace(",", "").replace("(", "").replace(".", "").replace(")", "")\
+        .replace(" ", "__").replace("%", "perc")
+
+
 def pidprint(*arg, flag="status"):
     """
     Behaves like builtin `print` function, but append runtime info before writing to stderr.

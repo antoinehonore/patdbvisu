@@ -13,11 +13,11 @@ ifndef logfile
 endif
 
 
-interm_fname=$(shell echo $(endfolder)/$(shell basename $(shell dirname $(fname)))/$(shell basename $(fname)) | sed 's/.xlsx/.csv/g')
+interm_fname=$(shell echo $(endfolder)/$(shell basename $(shell dirname $(fname)))/$(shell basename $(fname) | sed -e 's/[,()]//g' -e 's/ /__/g' -e 's/%/perc/g' -e 's/.*/\L&/') | sed 's/.xlsx/.csv/g')
 
 
 test:
-	@echo $(interm_fname)
+	@echo  $(interm_fname)
 
 upload: $(interm_fname).flag
 	@echo ""

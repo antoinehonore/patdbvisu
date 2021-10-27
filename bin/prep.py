@@ -161,7 +161,7 @@ def prep(args):
         df["clinicalunit"] = df["signame"].apply(lambda s: s.split("__")[-1])
         df["signame"] = df["signame"].apply(lambda s: "__".join(s.split("__")[:-2]))
         df.rename(columns={"personnummer":"ids__uid", "start":"thestart","end":"theend"},inplace=True)
-
+        df=df.replace(";", "", regex=True)
         df = create_idx(df,
                         ["ids__uid", "monid", "signame","bedlabel","clinicalunit", "thestart","theend"],
                         "ids__mondata", "mondata_raw"
@@ -169,7 +169,7 @@ def prep(args):
 
         df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str',"ids__mondata", "mondata_raw"]]
 
-    df.replace(";", "", regex=True).replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
+    df.replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
 
 
 

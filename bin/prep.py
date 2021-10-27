@@ -164,7 +164,7 @@ def prep(args):
 
         df = create_idx(df, ["ids__uid", "monid", "signame"], "ids__mondata", "mondata_raw")
 
-        df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str']]
+        df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str',"ids__mondata", "mondata_raw"]]
 
     df.replace(";", "", regex=True).replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
 

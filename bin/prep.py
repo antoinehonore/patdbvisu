@@ -172,7 +172,6 @@ def prep(args):
     df.replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
 
 
-
 def compress_chunk(d):
     if d.empty:
         c = compress_string(pd.DataFrame().to_csv(None, sep=";", index=False))
@@ -246,7 +245,7 @@ def chunk(args):
         df["local_id"] = os.path.basename(os.path.dirname(fname))
         dname=os.path.basename(os.path.dirname(fname)).split("_pat")[0]
         id_col = "monid"
-        map_tbl = dname.replace("-", "") + "__monitor_meta"
+        map_tbl = "monitor_meta"
         s = bname.replace(".csv", "").split("__")
         signame = "__".join(s[:-2])
         bedlabel = s[-2]

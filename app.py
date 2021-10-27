@@ -6,7 +6,7 @@ from dash import Dash, dcc, html, Input, Output, State,callback
 from dash import dash_table as dt
 
 import pandas as pd
-from bin.utils import get_engine, get_dbcfg, date_fmt,gdate
+from bin.utils import get_engine, get_dbcfg, date_fmt, gdate
 import pandas as pd
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate

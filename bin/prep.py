@@ -4,7 +4,7 @@ import argparse
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from utils import gdate, date_fmt, get_engine, get_dbcfg, pidprint
+from utils import gdate, date_fmt, get_engine, get_dbcfg, pidprint, mon_sig_name_fix
 import sys
 import os
 from sqlalchemy import create_engine
@@ -229,11 +229,6 @@ def create_idx(df,interval_characterization,keyname,keyraw):
     return df
 
 
-def mon_sig_name_fix(s):
-    # Fix names
-    return s.lower().replace(",", "").replace("(", "").replace(".", "").replace(")", "")\
-        .replace(" ", "__").replace("%", "perc")
-
 
 def chunk(args):
     fname = args.i
@@ -246,18 +241,21 @@ def chunk(args):
     bname = os.path.basename(fname)
 
     if mondata_test(bname):
-        df = pd.read_csv(fname,
-                         sep=";",
-                         names=["date", "data"]
-                         )
-        df["local_id"] = os.path.basename(os.path.dirname(fname))
-        dname=os.path.basename(os.path.dirname(fname)).split("_pat")[0]
-        id_col = "monid"
-        map_tbl = "monitor_meta"
         s = bname.replace(".csv", "").split("__")
         signame = mon_sig_name_fix("__".join(s[:-2]))
         bedlabel = s[-2]
         unitname = s[-1]
+
+        if "antekt" in signame:
+            pidprint("Ignoring", signame, flag="error")
+            sys.exit(1)
+
+        df = pd.read_csv(fname,
+                         sep=";",
+                         names=["date", "data"])
+        df["local_id"] = os.path.basename(os.path.dirname(fname))
+        id_col = "monid"
+        map_tbl = "monitor_meta"
 
         agg_fun = partial(aggregate_mon_data, signame=signame, bedlabel=bedlabel,unitname=unitname)
 

@@ -12,7 +12,9 @@ ifndef logfile
 	logfile=log/patdbvisu_$(shell date +"%Y%m%d").log
 endif
 
+
 interm_fname=$(shell echo $(endfolder)/$(shell basename $(shell dirname $(fname)))/$(shell basename $(fname)) | sed 's/.xlsx/.csv/g')
+
 
 test:
 	@echo $(interm_fname)
@@ -29,6 +31,7 @@ prep: $(interm_fname)
 
 $(interm_fname):$(fname)
 	$(PYTHON) bin/prep.py -i $^ -o $@  2>> $(logfile)
+
 
 .SECONDARY:
 

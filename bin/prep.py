@@ -161,6 +161,9 @@ def prep(args):
         df["clinicalunit"] = df["signame"].apply(lambda s: s.split("__")[-1])
         df["signame"] = df["signame"].apply(lambda s: "__".join(s.split("__")[:-2]))
         df.rename(columns={"personnummer":"ids__uid", "start":"thestart","end":"theend"},inplace=True)
+
+        df = create_idx(df, ["ids__uid", "monid", "signame"], "ids__mondata", "mondata_raw")
+
         df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str']]
 
     df.replace(";", "", regex=True).replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
@@ -212,6 +215,15 @@ def chunk_fun(df, agg_fun, local_id):
     out = out[first_cols + [s for s in out.columns if not (s in first_cols)]]
     return out
 
+    # Encode the interval info
+def create_idx(df,interval_characterization,keyname,keyraw):
+
+    hash_fun = lambda s: hashlib.sha256(s.encode("utf8")).hexdigest()
+
+    ids__interval__data = df[interval_characterization].applymap(lambda x: str(x)).values
+    df[keyraw] = [";".join(l) for l in ids__interval__data]
+    df[keyname] = [hash_fun(";".join(l)) for l in ids__interval__data]
+    return df
 
 def chunk(args):
     fname = args.i
@@ -298,12 +310,8 @@ def chunk(args):
     out["ids__uid"] = ids__uid
     out.drop(columns=["local_id"], inplace=True)
 
-    #Encode the interval info
-    hash_fun = lambda s: hashlib.sha256(s.encode("utf8")).hexdigest()
-    interval_characterization = ["ids__uid", "interval__start", "interval__end"]
-    ids__interval__data = out[interval_characterization].applymap(lambda x: str(x)).values
-    out["interval__raw"] = [";".join(l) for l in ids__interval__data]
-    out["ids__interval"] = [hash_fun(";".join(l)) for l in ids__interval__data]
+    out=create_idx(out,["ids__uid", "interval__start", "interval__end"], "ids__interval", "interval_raw")
+
     out.to_csv(outfname, sep=";", index=False)
 
 

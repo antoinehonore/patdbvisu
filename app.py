@@ -3,7 +3,8 @@ fig = go.Figure() # or any Plotly Express function e.g. px.bar(...)
 
 import dash
 from dash import Dash, dcc, html, Input, Output, State,callback
-import dash_table as dt
+from dash import dash_table as dt
+
 import pandas as pd
 from bin.utils import get_engine, get_dbcfg, date_fmt,gdate
 import pandas as pd

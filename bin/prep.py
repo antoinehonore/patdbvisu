@@ -162,7 +162,10 @@ def prep(args):
         df["signame"] = df["signame"].apply(lambda s: "__".join(s.split("__")[:-2]))
         df.rename(columns={"personnummer":"ids__uid", "start":"thestart","end":"theend"},inplace=True)
 
-        df = create_idx(df, ["ids__uid", "monid", "signame"], "ids__mondata", "mondata_raw")
+        df = create_idx(df,
+                        ["ids__uid", "monid", "signame","bedlabel","clinicalunit", "thestart","theend"],
+                        "ids__mondata", "mondata_raw"
+                        )
 
         df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str',"ids__mondata", "mondata_raw"]]
 

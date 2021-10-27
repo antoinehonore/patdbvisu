@@ -132,8 +132,9 @@ def format_tkevt_string(s):
         .replace("culture__negative__sepsis", "CNSepsis") \
         .replace("cardiorespiratory__system", "CRSystem") \
         .replace("staphylococcus", "staph")\
+        .replace("sepsis__ruled__out", "sro") \
         .replace("no__note__on__clinical__event", "no__notes")\
-        .replace("days__with__antibiotics", "d_w_antibio")
+        .replace("days__with__antibiotics", "days__antibio") \
 
 
 def read_summaries(fname):

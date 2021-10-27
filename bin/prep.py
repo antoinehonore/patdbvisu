@@ -253,7 +253,7 @@ def chunk(args):
         df = pd.read_csv(fname,
                          sep=";",
                          names=["date", "data"])
-        df["local_id"] = os.path.basename(bname)
+        df["local_id"] = os.path.basename(os.path.dirname(fname))
         id_col = "monid"
         map_tbl = "monitor_meta"
 

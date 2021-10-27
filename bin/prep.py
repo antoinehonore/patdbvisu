@@ -241,8 +241,8 @@ def chunk(args):
     bname = os.path.basename(fname)
 
     if mondata_test(bname):
-        s = bname.replace(".csv", "").split("__")
-        signame = mon_sig_name_fix("__".join(s[:-2]))
+        s = os.path.basename(outfname).replace(".csv", "").split("__")
+        signame = "__".join(s[:-2])
         bedlabel = s[-2]
         unitname = s[-1]
 
@@ -253,7 +253,7 @@ def chunk(args):
         df = pd.read_csv(fname,
                          sep=";",
                          names=["date", "data"])
-        df["local_id"] = os.path.basename(os.path.dirname(fname))
+        df["local_id"] = os.path.basename(bname)
         id_col = "monid"
         map_tbl = "monitor_meta"
 

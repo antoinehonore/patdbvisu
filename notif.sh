@@ -13,7 +13,7 @@ cmd=$3
 processes=
 
 
-inotifywait -qmre CLOSE_WRITE,CREATE,MOVED_TO --format $'%e\t%w%f' $WATCHED |
+inotifywait -mre CLOSE_WRITE,CREATE,MOVED_TO --format $'%e\t%w%f' $WATCHED |
     while IFS=$'\t' read -r events new
     do
         make $cmd fname=$new & 

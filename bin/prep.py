@@ -164,10 +164,10 @@ def prep(args):
         df=df.replace(";", "", regex=True)
         df = create_idx(df,
                         ["ids__uid", "monid", "signame","bedlabel","clinicalunit", "thestart","theend"],
-                        "ids__mondata", "mondata_raw"
+                        "ids__mondata", "mondata__raw"
                         )
 
-        df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str',"ids__mondata", "mondata_raw"]]
+        df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str',"ids__mondata", "mondata__raw"]]
 
     df.replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
 
@@ -227,6 +227,13 @@ def create_idx(df,interval_characterization,keyname,keyraw):
     df[keyname] = [hash_fun(";".join(l)) for l in ids__interval__data]
     return df
 
+
+def mon_sig_name_fix(s):
+    # Fix names
+    return s.lower().replace(",", "").replace("(", "").replace(".", "").replace(")", "")\
+        .replace(" ", "__").replace("%", "perc")
+
+
 def chunk(args):
     fname = args.i
     outfname = args.o
@@ -247,7 +254,7 @@ def chunk(args):
         id_col = "monid"
         map_tbl = "monitor_meta"
         s = bname.replace(".csv", "").split("__")
-        signame = "__".join(s[:-2])
+        signame = mon_sig_name_fix("__".join(s[:-2]))
         bedlabel = s[-2]
         unitname = s[-1]
 
@@ -312,7 +319,7 @@ def chunk(args):
     out["ids__uid"] = ids__uid
     out.drop(columns=["local_id"], inplace=True)
 
-    out=create_idx(out,["ids__uid", "interval__start", "interval__end"], "ids__interval", "interval_raw")
+    out=create_idx(out,["ids__uid", "interval__start", "interval__end"], "ids__interval", "interval__raw")
 
     out.to_csv(outfname, sep=";", index=False)
 

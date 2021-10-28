@@ -13,11 +13,13 @@ ifndef logfile
 endif
 
 
-interm_fname=$(shell echo $(endfolder)/$(shell basename $(shell dirname $(fname)))/$(shell basename $(fname) | sed -e 's/[,()]//g' -e 's/ /__/g' -e 's/%/perc/g' -e 's/.*/\L&/') | sed 's/.xlsx/.csv/g')
+interm_fname=$(shell echo $(endfolder)/$(shell basename $(shell dirname $(fname)))/$(shell basename $(fname) | sed -e 's/[,()]//g' -e 's/:/-/g' -e 's/ /__/g' -e 's/%/perc/g' -e 's/.*/\L&/') | sed 's/.xlsx/.csv/g')
 
 
 test:
 	@echo  $(interm_fname)
+	@echo $(fname)
+
 
 upload: $(interm_fname).flag
 	@echo ""
@@ -29,8 +31,8 @@ $(interm_fname).flag: $(interm_fname)
 prep: $(interm_fname)
 	@echo ""
 
-$(interm_fname):$(fname)
-	$(PYTHON) bin/prep.py -i $^ -o $@  2>> $(logfile)
+$(interm_fname):
+	$(PYTHON) bin/prep.py -i "$(fname)" -o $@  2>> $(logfile)
 
 
 .SECONDARY:

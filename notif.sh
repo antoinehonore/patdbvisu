@@ -16,7 +16,7 @@ processes=
 inotifywait -mre CLOSE_WRITE,CREATE,MOVED_TO --format $'%e\t%w%f' $WATCHED |
     while IFS=$'\t' read -r events new
     do
-        make $cmd fname=$new & 
+        make $cmd fname=$new -B &
         processes="$processes $!"
         nchild=`echo $processes | wc -w`
         p_a=( $processes )

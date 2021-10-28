@@ -160,8 +160,8 @@ if __name__ == "__main__":
         # Infer table name from file
         stage1 = parse("{}_takecare.csv", bname)
         stage2 = parse("{}_monitor_meta_details.csv", bname)
-        stage3 = parse("HF__{}.csv", bname)
-        stage4 = parse("LF__{}.csv", bname)
+        stage3 = parse("hf__{}.csv", bname)
+        stage4 = parse("lf__{}.csv", bname)
         stage5 = parse("{}_read_{}.csv", bname)
         stage6 = parse("{}{:d}.csv", bname)
         stage7 = parse("{}.csv", bname)

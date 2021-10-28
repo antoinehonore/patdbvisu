@@ -302,9 +302,13 @@ def chunk(args):
 
     engine = get_engine(verbose=False, **dbcfg)
 
+    local_id_q="\'%%{}%%\'".format(local_id)
+    if  mondata_test(bname):
+        local_id_q=local_id_q.replace("%","")
+
     # Find the ids__uid
     with engine.connect() as con:
-        tmp = pd.read_sql("select distinct ids__uid from {} where {} like \'%%{}%%\'".format(map_tbl, id_col, local_id), con)
+        tmp = pd.read_sql("select distinct ids__uid from {} where {} like {}".format(map_tbl, id_col,local_id_q ), con)
 
     if tmp.shape[0] == 0:
         pidprint("local_id:{} not found in overview.".format(local_id), flag="error")

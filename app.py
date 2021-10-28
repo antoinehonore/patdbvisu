@@ -49,10 +49,11 @@ app = dash.Dash(
     __name__,
     external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
 
+
 app.layout = html.Div([
                 html.Div([
                     html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-                    html.Img(src=app.get_asset_url('line.png'),style={"width":"100%", "height":"5px"})
+                    html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
                     ]),
                 html.Div([
                     html.Button('Refresh', id='show-secret'),
@@ -63,10 +64,9 @@ app.layout = html.Div([
                 ], className="two columns"),
                 html.Div([
                     html.P("Database size: "),
-                    html.P(id="dbinfo")
+                    html.P("-", id="dbinfo")
                     ]),
                 html.Div(id='body-div'),
-
             ])
 
 

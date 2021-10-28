@@ -52,6 +52,7 @@ app = dash.Dash(
 app.layout = html.Div([
                 html.Div([
                     html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
+                    html.Img(src=app.get_asset_url('line.png'),style={"width":"100%", "height":"5px"})
                     ]),
                 html.Div([
                     html.Button('Refresh', id='show-secret'),

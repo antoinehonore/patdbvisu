@@ -181,7 +181,7 @@ if __name__ == "__main__":
         elif stage7:
             tbl_name = stage6[0]
         else:
-            print("Could not infer tbl_name for", bname, file=sys.stderr)
+            pidprint("Could not infer tbl_name for", bname, flag="error")
             sys.exit(1)
 
         cfg_stem = tbl_name

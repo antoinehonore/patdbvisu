@@ -222,7 +222,7 @@ if __name__ == "__main__":
                                            con)
 
                     # Row2dict
-                    row = {k: fmt_sqldtype(v) for k, v in df.iloc[i].to_dict().items()}
+                    row = {k: fmt_sqldtype(v).replace("'-99999'", "NULL") for k, v in df.iloc[i].to_dict().items()}
 
                     # Find corresponding row based on primary key
                     #  drow = df_existing[(df_existing[thekeys[0]] == thekeyvalue)]

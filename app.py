@@ -190,7 +190,7 @@ def update_checklist_test(n_clicks, checklists):
     else:
         OUT =[]
         for v in checklists:
-            print("Updating the text..", v)
+            #print("Updating the text..", v)
             if len(v["props"]["value"]) > 0:
                 thequery = "select ids__uid from view__uid_has where {}".format(cond_from_checklist(v["props"]["value"]))
 

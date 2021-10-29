@@ -202,12 +202,12 @@ def compress_string(s):
     return base64.b64encode(zlib.compress(s.encode("utf8"))).decode("utf8")
 
 
-def chunk_fun(df, agg_fun, local_id):
+def chunk_fun(df, agg_fun, local_id, period):
     df["date"] = pd.to_datetime(df["date"])
     start_date = df["date"].min()
     end_date = df["date"].max()
 
-    step = timedelta(days=1)
+    step = timedelta(hours=parse("{:d}h", period)[0])
     start_date = datetime.combine(start_date, datetime.min.time())
     end_date = datetime.combine(end_date, datetime.max.time())
 
@@ -253,7 +253,7 @@ def create_idx(df,interval_characterization,keyname,keyraw):
 def chunk(args):
     fname = args.i
     outfname = args.o
-    period = args.p
+    period = args.period
     date_col = args.date
     id_col = args.id
     map_tbl = args.maptbl
@@ -318,7 +318,7 @@ def chunk(args):
 
     local_id = df.local_id.unique()[0]
 
-    out = chunk_fun(df, agg_fun, local_id)
+    out = chunk_fun(df, agg_fun, local_id,period)
 
     LOG = {}
     dbcfg = get_dbcfg("cfg/db.cfg")
@@ -356,6 +356,7 @@ parser.add_argument("-i", type=str)
 parser.add_argument("-o", type=str)
 parser.add_argument("-id", type=str, default="tkid")
 parser.add_argument("-date", type=str, default="date")
+parser.add_argument("-period", type=str, default="12h")
 parser.add_argument("-p", type=str, default="days")
 parser.add_argument("-cpref", type=str, default="tkevt", help="column prefix")
 parser.add_argument("-maptbl", type=str, default="overview", help="table containing mapping local_id, ids__uid")

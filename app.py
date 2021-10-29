@@ -182,7 +182,7 @@ app.layout = html.Div([navbar,
 @app.callback(
     Output(component_id="checklist-test", component_property="children"),
     Input(component_id="updatechecklists-button", component_property='n_clicks'),
-Input(component_property="children", component_id="div-checklists"),
+    Input(component_property="children", component_id="div-checklists"),
 )
 def update_checklist_test(n_clicks, checklists):
     if n_clicks is None:

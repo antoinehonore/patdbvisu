@@ -1,3 +1,15 @@
+drop view if exists view__has;
+drop view if exists view__uid_has;
+
+drop view if exists view__interv_all;
+drop view if exists view__monitorlf_has_btb;
+drop view if exists view__monitorlf_has_rf;
+drop view if exists view__monitorlf_has_spo2;
+drop view if exists view__vikt_uid_has;
+drop view if exists view__vikt_has;
+
+
+
 create view view__interv_all as (
 	select ids__uid,ids__interval from monitorlf
 	union
@@ -18,6 +30,10 @@ create view view__interv_all as (
 	select ids__uid,ids__interval from fio2
 );
 
+create view view__uid_all as (
+    select distinct ids__uid
+    from view__interv_all
+);
 
 create view view__monitorlf_has_btb as (
 select ids__uid ,ids__interval
@@ -25,6 +41,11 @@ from monitorlf ddwl
 where ddwl."lf__147840__147850__147850__btbhf__btbhf__spm" notnull or ddwl."lf__none__147850__none__btbhf__none__spm" notnull
 );
 
+create view view__monitorlf_uid_has_btb as
+(
+	select distinct ids__uid
+	from view__monitorlf_has_btb
+);
 
 create view view__monitorlf_has_rf as (
 select ids__uid, ids__interval
@@ -34,6 +55,11 @@ ddwl."lf__151562__151562__151562__rf__rf__rpm" notnull or ddwl."lf__none__151562
 					or ddwl."lf__151562__151562__151562__rf__rf__ok-nd" notnull or ddwl."lf__none__151562__none__rf__none__okand" notnull
 );
 
+create view view__monitorlf_uid_has_rf as
+(
+	select distinct ids__uid
+	from view__monitorlf_has_rf
+);
 
 create view view__monitorlf_has_spo2 as (
 select ids__uid ,ids__interval
@@ -46,6 +72,11 @@ ddwl."lf__150456__150456__150456__spo-__spo-__perc" notnull
 				    or ddwl."lf__150456__150456__150456__spo-__spo-__ok-nd" notnull
 );
 
+create view view__monitorlf_uid_has_spo2 as
+(
+	select distinct ids__uid
+	from view__monitorlf_has_spo2
+);
 
 create view view__vikt_has as
 (
@@ -54,6 +85,11 @@ create view view__vikt_has as
 	where cirk_vikt notnull
 );
 
+create view view__vikt_uid_has as
+(
+	select distinct ids__uid
+	from view__vikt_has
+);
 
 create view view__has as
 (
@@ -62,16 +98,18 @@ create view view__has as
 		case when (via.ids__interval in (select v.ids__interval from view__monitorlf_has_rf v)) then 1 else 0 end as "rf",
 		case when (via.ids__interval in (select v.ids__interval from view__monitorlf_has_spo2 v)) then 1 else 0 end as "spo2",
 		case when (via.ids__interval in (select v.ids__interval from view__vikt_has v)) then 1 else 0 end as "vikt",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_abdominal_nec v)) then 1 else 0 end as "abdominal_nec",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_brain_ivh_stage_3_4 v)) then 1 else 0 end as "brain_ivh_stage_3_4",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_cns v)) then 1 else 0 end as "cns",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_cns_infection v)) then 1 else 0 end as "cns_infection",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_death v)) then 1 else 0 end as "death",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_eos v)) then 1 else 0 end as "eos",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_infection v)) then 1 else 0 end as "infection",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_los v)) then 1 else 0 end as "los",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_lung_bleeding v)) then 1 else 0 end as "lung_bleeding",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_pneumonia v)) then 1 else 0 end as "pneumonia",
-		case when (via.ids__interval in (select v.ids__interval from view__tkgrp_sro v)) then 1 else 0 end as "sro"
+        $REGISTERED_TK_EVENTS$
 	from view__interv_all via
+);
+
+
+create view view__uid_has as
+(
+	select ids__uid,
+		case when (vua.ids__uid in (select v.ids__uid from view__monitorlf_uid_has_btb v)) then 1 else 0 end as "btb",
+		case when (vua.ids__uid in (select v.ids__uid from view__monitorlf_uid_has_rf v)) then 1 else 0 end as "rf",
+		case when (vua.ids__uid in (select v.ids__uid from view__monitorlf_uid_has_spo2 v)) then 1 else 0 end as "spo2",
+		case when (vua.ids__uid in (select v.ids__uid from view__vikt_uid_has v)) then 1 else 0 end as "vikt",
+        $REGISTERED_UID_TK_EVENTS$
+	from view__uid_all vua
 );

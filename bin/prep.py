@@ -15,17 +15,21 @@ import zlib
 
 from functools import partial
 
+
 def mondata_test(bname):
     return bname.startswith("LF__") or bname.startswith("HF__")
+
 
 def tkdata_test(bname):
     return "_takecare" in bname
 
+
 def clindata_test(bname):
     return parse("{}_read_{}.csv", bname)
 
+
 def agg_tk(col):
-    if col.shape[0]==0 or col.isna().all():
+    if col.shape[0] == 0 or col.isna().all():
         return np.nan
     else:
         if col.name == "tkid":
@@ -54,7 +58,7 @@ def register_change_num(d, ichunk=None,data_col=None):
     return out_df
 
 
-def register_values(d,ichunk=None,data_col=None):
+def register_values(d, ichunk=None, data_col=None):
     thevars = [s for s in list(d) if s in data_col]
     out = {}
 
@@ -63,8 +67,9 @@ def register_values(d,ichunk=None,data_col=None):
         out[thevar] = "___".join(["__".join([str(ll[1]),datetime.strftime(ll[0],date_fmt)]) for ll in chg.values])
 
     out_df = pd.DataFrame(columns=list(out.keys()), data=np.array(list(out.values())).reshape(1, -1), index=[ichunk])
-    out_df.replace({"":np.nan},inplace=True)
+    out_df.replace({"": np.nan}, inplace=True)
     return out_df
+
 
 def aggregate_clin_data(d, ichunk):
     l = list(d)
@@ -89,7 +94,7 @@ def aggregate_clin_data(d, ichunk):
     return out
 
 
-def register_change_resp(d,ichunk=None,data_col=None):
+def register_change_resp(d, ichunk=None, data_col=None):
     chg = ((d["respirator"] != d["respirator"].shift(1)).cumsum() - 1)
     all_chg = chg.unique()
     l = []
@@ -109,7 +114,8 @@ def aggregate_tk_data(d, ichunk):
     out = pd.DataFrame(columns=out.index, data=out.values.reshape(1,-1),index=[ichunk])
     return out
 
-def aggregate_mon_data(d, ichunk, signame="here", bedlabel="unknown",unitname="unknown"):
+
+def aggregate_mon_data(d, ichunk, signame="here", bedlabel="unknown", unitname="unknown"):
     out = pd.DataFrame(columns=[signame], data=np.array([compress_chunk(d)]).reshape(1,-1),index=[ichunk])
     out["bedlabel"] = bedlabel
     out["unitname"] = unitname
@@ -135,6 +141,7 @@ def format_tkevt_string(s):
         .replace("sepsis__ruled__out", "sro") \
         .replace("no__note__on__clinical__event", "no__notes")\
         .replace("days__with__antibiotics", "days__antibio") \
+
 
 
 def read_summaries(fname):
@@ -180,6 +187,7 @@ def compress_chunk(d):
         c = compress_string(d.to_csv(None, sep=";", index=False))
     return c
 
+
 def compress_string(s):
     return base64.b64encode(zlib.compress(s.encode("utf8"))).decode("utf8")
 
@@ -219,6 +227,8 @@ def chunk_fun(df, agg_fun, local_id):
     return out
 
     # Encode the interval info
+
+
 def create_idx(df,interval_characterization,keyname,keyraw):
 
     hash_fun = lambda s: hashlib.sha256(s.encode("utf8")).hexdigest()
@@ -256,12 +266,13 @@ def chunk(args):
         df["local_id"] = os.path.basename(os.path.dirname(fname))
         id_col = "monid"
         map_tbl = "monitor_meta"
-
+        ovid_col = id_col
         agg_fun = partial(aggregate_mon_data, signame=signame, bedlabel=bedlabel,unitname=unitname)
 
     elif tkdata_test(bname):
         df = pd.read_csv(fname, sep=";")
-
+        id_col = "patientid"
+        ovid_col = "tkid"
         df.rename(columns={date_col: "date",
                            id_col: "local_id"},
                   inplace=True)
@@ -280,8 +291,9 @@ def chunk(args):
 
     elif clindata_test(bname):
         df = pd.read_csv(fname, sep=";")
-        id_col="clinid"
-        map_tbl="overview"
+        id_col = "clinid"
+        map_tbl = "overview"
+        ovid_col = id_col
 
         df.rename(columns={"Tid": "date", id_col: "local_id"},
                   inplace=True)
@@ -309,7 +321,7 @@ def chunk(args):
 
     # Find the ids__uid
     with engine.connect() as con:
-        tmp = pd.read_sql("select distinct ids__uid from {} where {} like {}".format(map_tbl, id_col, local_id_q), con)
+        tmp = pd.read_sql("select distinct ids__uid from {} where {} like {}".format(map_tbl, ovid_col, local_id_q), con)
 
     if tmp.shape[0] == 0:
         pidprint("local_id:{} not found in overview.".format(local_id), flag="error")
@@ -323,7 +335,7 @@ def chunk(args):
     out["ids__uid"] = ids__uid
     out.drop(columns=["local_id"], inplace=True)
 
-    out=create_idx(out,["ids__uid", "interval__start", "interval__end"], "ids__interval", "interval__raw")
+    out = create_idx(out, ["ids__uid", "interval__start", "interval__end"], "ids__interval", "interval__raw")
 
     out.to_csv(outfname, sep=";", index=False)
 

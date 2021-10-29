@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
         if stage1:
             tbl_name = "takecare"
-        if stage2:
+        elif stage2:
             tbl_name = "monitor_meta"
         elif stage3:
             tbl_name = "monitorhf"

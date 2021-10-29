@@ -6,9 +6,7 @@ import sys
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-i", type=str, help="Input query file name.")
-parser.add_argument('-p', metavar='period', type=str,
-                    help='Binning period to look for.',default="weeks")
+parser.add_argument("-i", type=str, help="Input query file name.",required=True)
 
 if __name__ == "__main__":
     args = parser.parse_args()

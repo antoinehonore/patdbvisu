@@ -295,11 +295,12 @@ def chunk(args):
         map_tbl = "overview"
         ovid_col = id_col
 
-        df.rename(columns={"Tid": "date", id_col: "local_id"},
+        df.rename(columns={"Tid": "date",
+                           id_col: "local_id"},
                   inplace=True)
 
-        print("")
         agg_fun = aggregate_clin_data
+
 
     if df.shape[0] == 0:
         pidprint("Empty input file", fname, flag="error")

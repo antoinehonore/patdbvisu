@@ -175,11 +175,11 @@ if __name__ == "__main__":
         elif stage4:
             tbl_name = "monitorlf"
         elif stage5:
-            tbl_name = stage4[1]
+            tbl_name = stage5[1]
         elif stage6:
-            tbl_name = stage5[0]
-        elif stage7:
             tbl_name = stage6[0]
+        elif stage7:
+            tbl_name = stage7[0]
         else:
             pidprint("Could not infer tbl_name for", bname, flag="error")
             sys.exit(1)

@@ -149,7 +149,8 @@ def format_clindata_string(s):
     return s.strip().lower().replace(",", "")\
         .replace("(", "").replace(".", "")\
         .replace(")", "").replace(" ", "__")\
-        .replace("tpn__clinoleic_____tillsats__individuel", "tpn_clinol_tillsats_indiv")
+        .replace("tpn__clinoleic_____tillsats__individuel", "tpn_clinol_tillsats_indiv")\
+        .replace("tpn__numeta__g16e___tillsats__2_____5_5__kg__inf", "tpn_numeta_g16e_tills_2_5_5_kg_inf")\
 
 
 def read_summaries(fname):

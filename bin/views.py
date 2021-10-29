@@ -83,14 +83,11 @@ if __name__ == "__main__":
         if not (v2 is None):
             engine.execute("create view view__tkgrp_uid_{} as ({});".format(k2, v2))
 
+    REGISTERED_TK_EVENTS = ",\n".join([
+    "case when (via.ids__interval in (select v.ids__interval from view__tkgrp_{} v)) then 1 else 0 end as \"{}\"".format(k, k) for k in queries1.keys()])
 
-    REGISTERED_TK_EVENTS=",\n".join([
-    "case when (via.ids__interval in (select v.ids__interval from view__tkgrp_{} v)) then 1 else 0 end as \"{}\"".format(k,k) for k in queries1.keys()])
-
-
-    REGISTERED_UID_TK_EVENTS=",\n".join([
+    REGISTERED_UID_TK_EVENTS = ",\n".join([
     "case when (vua.ids__uid in (select v.ids__uid from view__tkgrp_uid_{} v)) then 1 else 0 end as \"{}\"".format(k, k) for k in queries1.keys()])
-
 
     main_query = read_query_file("queries/set_views.sql")
     main_query = main_query.replace("$REGISTERED_TK_EVENTS$", REGISTERED_TK_EVENTS)

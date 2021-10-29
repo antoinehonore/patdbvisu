@@ -145,6 +145,11 @@ def format_tkevt_string(s):
         .replace("vascular__system", "vasc_sys")\
         .replace("internal__non-significant", "intern_ns")\
 
+def format_clindata_string(s):
+    return s.strip().lower().replace(",", "")\
+        .replace("(", "").replace(".", "")\
+        .replace(")", "").replace(" ", "__")\
+        .replace("tpn__clinoleic_____tillsats__individuel", "tpn_clinol_tillsats_indiv")
 
 
 def read_summaries(fname):
@@ -309,6 +314,7 @@ def chunk(args):
         df.rename(columns={"Tid": "date",
                            id_col: "local_id"},
                   inplace=True)
+        df.columns = list(map(format_clindata_string, df.columns))
 
         agg_fun = aggregate_clin_data
 

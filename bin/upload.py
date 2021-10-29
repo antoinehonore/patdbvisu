@@ -225,7 +225,7 @@ if __name__ == "__main__":
                     row = {k: fmt_sqldtype(v) for k, v in df.iloc[i].to_dict().items()}
 
                     # Find corresponding row based on primary key
-                    #drow = df_existing[(df_existing[thekeys[0]] == thekeyvalue)]
+                    #  drow = df_existing[(df_existing[thekeys[0]] == thekeyvalue)]
 
                     # Existing row -> dict
                     if drow.shape[0] > 0:

@@ -10,6 +10,8 @@ from bin.utils import get_engine, get_dbcfg, date_fmt, gdate
 import pandas as pd
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
+from datetime import datetime
+
 
 dbcfg = get_dbcfg("cfg/db.cfg")
 
@@ -49,11 +51,19 @@ app = dash.Dash(
     __name__,
     external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
 
+nav_bar_style = {"background-repeat": "no-repeat",
+     "background-position": "right top",
+     "background-size": "300px 30px",
+     "height":"5%",
+     "position":"fixed",
+     "top":"0", "width": "100%"}
 
-app.layout = html.Div([
-                html.Div([
+#nav_bar_style = {}
+separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
+
+navbar = html.Div(children=[html.Ul(children=[html.Div([
+                    separator,
                     html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-                    html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
                     ]),
                 html.Div([
                     html.Button('Refresh', id='show-secret'),
@@ -66,8 +76,14 @@ app.layout = html.Div([
                     html.P("Database size: "),
                     html.P("-", id="dbinfo")
                     ]),
-                html.Div(id='body-div'),
-            ])
+                separator
+                ])],
+    style=nav_bar_style)
+
+
+app.layout = html.Div([navbar,
+             html.Div(id='body-div',style={"margin-top":"200px"}),
+             ]+[html.P("dd")]*50)
 
 
 def get_db_size():
@@ -82,10 +98,10 @@ def gentbl(df):
                         data=df.to_dict('records'),
                          **style_tbl, page_size=10, style_table={'overflowX': 'auto'})
 
+
 def get_update_status(e):
     return "{} ({} ms)".format(gdate(), round(e*1000, 1))
 
-from datetime import datetime
 
 @app.callback(
     Output(component_id='body-div', component_property='children'),

@@ -135,14 +135,15 @@ def format_tkevt_string(s):
     return s.strip().lower().replace(",", "")\
         .replace("(", "").replace(".", "")\
         .replace(")", "").replace(" ", "__")\
-        .replace("culture__negative__sepsis", "CNSepsis") \
-        .replace("cardiorespiratory__system", "CRSystem") \
+        .replace("culture__negative__sepsis", "cnsepsis") \
+        .replace("cardiorespiratory__system", "crsystem") \
         .replace("staphylococcus", "staph")\
         .replace("sepsis__ruled__out", "sro") \
         .replace("no__note__on__clinical__event", "no__notes")\
         .replace("days__with__antibiotics", "days__antibio") \
         .replace("local__perfusion__disturbance", "loc_perf_dist")\
-        .replace("vascular__system", "vasc_sys")
+        .replace("vascular__system", "vasc_sys")\
+        .replace("internal__non-significant", "intern_ns")\
 
 
 
@@ -166,6 +167,7 @@ def prep(args):
         df = read_summaries(infname)
 
     df.columns = [rx.sub(' ', unidecode(s.strip())).strip().lower().replace(" ", "_") for s in df.columns]
+
     if "monitor_meta" in os.path.basename(infname):
         df["bedlabel"] = df["signame"].apply(lambda s:s.split("__")[-2])
         df["clinicalunit"] = df["signame"].apply(lambda s: s.split("__")[-1])
@@ -292,6 +294,7 @@ def chunk(args):
                         axis=1).astype(str)
 
         df = df.replace("0", np.nan)
+
         df = df.apply(procrow, axis=1)
 
         df.columns = list(map(format_tkevt_string, df.columns))
@@ -309,7 +312,6 @@ def chunk(args):
 
         agg_fun = aggregate_clin_data
 
-
     if df.shape[0] == 0:
         pidprint("Empty input file", fname, flag="error")
         sys.exit(1)
@@ -325,8 +327,8 @@ def chunk(args):
 
     local_id_q = "\'%%{}%%\'".format(local_id)
 
-    if  mondata_test(bname):
-        local_id_q = local_id_q.replace("%","")
+    if mondata_test(bname):#In the monitoring database, we look exactly for the ID rather than the ID in a potential list of IDs
+        local_id_q = local_id_q.replace("%", "")
 
     # Find the ids__uid
     with engine.connect() as con:

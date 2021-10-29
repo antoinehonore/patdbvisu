@@ -40,7 +40,7 @@ def agg_tk(col):
             return "___".join([col.name+"@"+v for v in col.values.astype(str) if v!="nan"])
 
 
-def register_change_num(d, ichunk=None,data_col=None):
+def register_change_num(d, ichunk=None, data_col=None):
     thevars = [s for s in list(d) if s in data_col]
     out = {}
 
@@ -64,7 +64,7 @@ def register_values(d, ichunk=None, data_col=None):
 
     for thevar in thevars:
         chg = d[["date"]+[thevar]][d[thevar].notna()]
-        out[thevar] = "___".join(["__".join([str(ll[1]),datetime.strftime(ll[0],date_fmt)]) for ll in chg.values])
+        out[thevar] = "___".join(["__".join([str(ll[1]), datetime.strftime(ll[0],date_fmt)]) for ll in chg.values])
 
     out_df = pd.DataFrame(columns=list(out.keys()), data=np.array(list(out.values())).reshape(1, -1), index=[ichunk])
     out_df.replace({"": np.nan}, inplace=True)
@@ -141,6 +141,8 @@ def format_tkevt_string(s):
         .replace("sepsis__ruled__out", "sro") \
         .replace("no__note__on__clinical__event", "no__notes")\
         .replace("days__with__antibiotics", "days__antibio") \
+        .replace("local__perfusion__disturbance", "loc_perf_dist")\
+        .replace("vascular__system", "vasc_sys")
 
 
 
@@ -168,14 +170,20 @@ def prep(args):
         df["bedlabel"] = df["signame"].apply(lambda s:s.split("__")[-2])
         df["clinicalunit"] = df["signame"].apply(lambda s: s.split("__")[-1])
         df["signame"] = df["signame"].apply(lambda s: "__".join(s.split("__")[:-2]))
-        df.rename(columns={"personnummer":"ids__uid", "start":"thestart","end":"theend"},inplace=True)
-        df=df.replace(";", "", regex=True)
+        df.rename(columns={"personnummer": "ids__uid",
+                           "start": "thestart",
+                           "end": "theend"},
+                  inplace=True)
+        df = df.replace(";", "", regex=True)
         df = create_idx(df,
                         ["ids__uid", "monid", "signame","bedlabel","clinicalunit", "thestart","theend"],
                         "ids__mondata", "mondata__raw"
                         )
 
-        df = df[['monid','ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str',"ids__mondata", "mondata__raw"]]
+        df = df[['monid', 'ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str',"ids__mondata", "mondata__raw"]]
+
+    elif os.path.basename(infname).startswith("overview"):
+        df = df.applymap(lambda s: s if not isinstance(s, str) else s.lower())
 
     df.replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
 

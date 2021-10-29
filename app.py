@@ -200,6 +200,5 @@ def update_checklist_test(n_clicks, checklists):
         return "\n".join(OUT)
 
 
-
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=False)

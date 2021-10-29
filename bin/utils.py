@@ -44,6 +44,15 @@ def get_dbcfg(fname):
         dbcfg=json.load(fp)
     return dbcfg
 
+def read_query_file(fname: str) -> str:
+    """
+    Read the template data query files.
+    Replace the 'period' keyword in the template the `period` kwarg
+    """
+    with open(fname, "rb") as fp:
+        query_str = fp.read().decode("utf8")
+    return query_str
+
 def get_engine(username: str = "remotedbuser", root_folder: str = ".", nodename: str = "client", schema=None,dbname:str="remotedb", verbose=False):
     """
     Get a database `sqlalchemy.engine` object for the user `username`, using ssl certificates specific for 'nodenames' type machines.

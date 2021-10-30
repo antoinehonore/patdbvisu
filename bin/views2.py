@@ -77,17 +77,3 @@ engine.execute("\n".join([v for v in drop_views_queries.values()]))
 
 
 
-    with engine.connect() as con:
-        df = pd.read_sql("select * from view__timeline_n_patients;", con).set_index("interval__start")
-    df.rename(columns={k: k.replace("total_n_patients__", "").capitalize().replace("torlf", "tor LF").replace("torhf", "tor HF") for k in df.columns}, inplace=True)
-    fig = px.line(df, template="none")
-
-    fig.update_layout(font={"size": 30}, legend_title="Source")
-    fig.update_traces(line=dict(width=5))
-
-    fig.update_xaxes(title="")
-    fig.update_yaxes(title="Number of Patients", automargin=True)
-    fig.show()
-
-    fig = go.Figure()
-    fig.add_trace(go.Line(x=df.index, y=df.values.T))

@@ -56,7 +56,7 @@ def new_checklist(i, init_val=None):
         #labelStyle={"display": "inline-block"},
         id="checklist-{}".format(i),
         multi=True,
-        placeholder="Write the categories you want",
+        placeholder="Population {}: Write the categories you want".format(i),
         style=dict(width="1000px")
     )
 

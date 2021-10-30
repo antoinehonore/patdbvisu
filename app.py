@@ -50,11 +50,14 @@ def get_categories():
 
 
 def new_checklist(i, init_val=None):
-    return dcc.Checklist(
+    return dcc.Dropdown(
         options=get_categories(),
         value=init_val,
-        labelStyle={"display": "inline-block"},
-        id="checklist-{}".format(i)
+        #labelStyle={"display": "inline-block"},
+        id="checklist-{}".format(i),
+        multi=True,
+        placeholder="Write the categories you want",
+        style=dict(width="1000px")
     )
 
 

@@ -6,7 +6,7 @@ from dash import Dash, dcc, html, Input, Output, State, callback
 from dash import dash_table as dt
 
 import pandas as pd
-from bin.utils import get_engine, get_dbcfg, date_fmt, gdate, all_data_tables
+from bin.utils import get_engine, get_dbcfg, date_fmt, gdate, all_data_tables, get_colnames,ref_cols,run_select_queries
 import pandas as pd
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
@@ -94,9 +94,11 @@ def get_latest_update(id="update-status",className=None):
 def fig_npat_vs_time(engine):
     with engine.connect() as con:
         df = pd.read_sql("select * from view__timeline_n_patients;", con).set_index("interval__start")
+
     df.rename(columns={
         k: k.replace("total_n_patients__", "").capitalize().replace("torlf", "tor LF").replace("torhf", "tor HF")
         for k in df.columns}, inplace=True)
+
     fig = px.line(df, template="none")
 
     fig.update_layout(font={"size": 30}, legend_title="Source")
@@ -212,6 +214,15 @@ def update_check_lists(clickless, clickmore, checklist):
         return checklist + [new_checklist(len(checklist) + 1, init_val=init_val)]
 
 
+# The tables column names
+with engine.connect() as con:
+    all_cols = {k: get_colnames(k, con) for k in all_data_tables}
+
+thecase = "case when ({} notnull) then True else NULL end as {}"
+
+the_cases = {k: ",\n".join([col if (k == "overview") or (col in ref_cols) else thecase.format(col, col)
+                           for col in all_cols[k]]) for k in all_data_tables}
+
 
 @app.callback(
     Output("patientid-disp", "children"),
@@ -223,9 +234,23 @@ def cb_render(n_clicks, patid):
     if n_clicks is None:
         raise PreventUpdate
     else:
-        start_=datetime.now()
-        d = {k: execquerey(pat_data_q(k, patid, col="ids__uid"), engine) for k in all_data_tables}
-        return [html.P(", ".join([k for k, v in d.items() if v.shape[0] > 0]))], get_update_status(start_)
+        start_ = datetime.now()
+
+        create_views_queries = {
+            k: "create or replace view patview_{}_{} as (select * from {} where ids__uid='{}');".format(k, patid, k, patid) for k
+            in all_data_tables}
+
+        engine.execute("\n".join([v for v in create_views_queries.values()]))
+
+        select_queries = {k: "select {} from patview_{}_{}".format(the_cases[k], k, patid) for k in all_data_tables}
+
+        data_lvl1 = run_select_queries(select_queries, engine)
+
+ #       drop_views_queries = {k: "drop view if exists patview_{}_{};".format(k, patid) for k in all_data_tables}
+
+
+#        d = {k: execquerey(pat_data_q(k, patid, col="ids__uid"), engine) for k in all_data_tables}
+        return [gentbl(data_lvl1["overview"])], get_update_status(start_)
 
 
 @app.callback(

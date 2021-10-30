@@ -2,12 +2,32 @@ from datetime import datetime
 import os
 from sqlalchemy import create_engine
 import sys
+import pandas as pd
 
 import json
 date_fmt="%Y-%m-%d %H:%M:%S"
 
 clin_tables = ["med", "vatska", "vikt", "respirator", "pressure", "lab", "fio2"]
 all_data_tables = ["overview", "takecare"]+clin_tables+[ "monitorlf", "monitorhf"]
+
+ref_cols = ["\""+s+"\"" for s in ['ids__uid', 'ids__interval', 'interval__raw', 'interval__start', 'interval__end']]
+
+
+
+def run_select_queries(select_queries, engine):
+    data = {}
+    with engine.connect() as con:
+        for k, v in select_queries.items():
+            df = pd.read_sql(v, con)
+            non_empty_col = (df.notna().sum(0) != 0)
+            data[k] = df[non_empty_col.index.values[non_empty_col.values].tolist()]
+    return data
+
+def get_colnames(k, con):
+    df = pd.read_sql("select column_name   FROM information_schema.columns "\
+                   " WHERE table_schema = \'public\'    AND table_name   = \'{}\' ".format(k),
+                   con)
+    return list(map(lambda s: "\""+s+"\"", df["column_name"].values.tolist()))
 
 
 def gdate(date_fmt="%Y-%m-%d %H:%M:%S"):

@@ -1,19 +1,16 @@
 import plotly.graph_objects as go  # or plotly.express as px
-
-fig = go.Figure()  # or any Plotly Express function e.g. px.bar(...)
+import plotly.express as px
 
 import dash
 from dash import Dash, dcc, html, Input, Output, State, callback
 from dash import dash_table as dt
 
 import pandas as pd
-from bin.utils import get_engine, get_dbcfg, date_fmt, gdate
+from bin.utils import get_engine, get_dbcfg, date_fmt, gdate, all_data_tables
 import pandas as pd
 import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from datetime import datetime
-
-all_data_tables = ["overview", "takecare", "med", "vatska", "vikt", "respirator", "pressure", "lab", "fio2", "monitorlf", "monitorhf"]
 
 
 def pat_data_q(tbl_name, ids__uid, col="*"):
@@ -34,7 +31,7 @@ def gentbl(df):
 
 
 def get_update_status(start_):
-    return [gdate(),html.Br(),"({} ms)".format(round(((datetime.now() - start_).total_seconds()) * 1000, 1))]
+    return [gdate(), html.Br(), "({} ms)".format(round(((datetime.now() - start_).total_seconds()) * 1000, 1))]
 
 
 def cond_from_checklist(value):
@@ -90,24 +87,82 @@ nav_bar_style = {}
 
 separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
 
-def get_latest_update(id="update-status"):
-   return html.Div([html.P("Latest update: "), html.P("-", id=id)], className="two columns")
+def get_latest_update(id="update-status",className=None):
+   return html.Div([html.P("Latest update: "), html.P("-", id=id)], className=className)
+
+
+def fig_npat_vs_time(engine):
+    with engine.connect() as con:
+        df = pd.read_sql("select * from view__timeline_n_patients;", con).set_index("interval__start")
+    df.rename(columns={
+        k: k.replace("total_n_patients__", "").capitalize().replace("torlf", "tor LF").replace("torhf", "tor HF")
+        for k in df.columns}, inplace=True)
+    fig = px.line(df, template="none")
+
+    fig.update_layout(font={"size": 30}, legend_title="Source")
+    fig.update_traces(line=dict(width=5))
+
+    fig.update_xaxes(title="")
+    fig.update_yaxes(title="Number of Patients", automargin=True)
+    return fig
+
+
+def fig_pat_length_of_stay(engine):
+    with engine.connect() as con:
+        df = pd.read_sql("select n_days from view__length_of_stay where n_days <780;", con)
+
+    fig = px.histogram(df, nbins=200, template="none")
+
+    fig.update_layout(font={"size": 30}, showlegend=False)
+    #fig.update_traces(line=dict(width=5))
+
+    fig.update_yaxes(title="Patient Count", automargin=True)
+    fig.update_xaxes(title="Length of stay (days)", automargin=True)
+    return fig
 
 
 navbar = html.Div(children=[html.Ul(children=[html.Div([
     html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-]),
+    ]),
     html.Div([
-        html.Button('Refresh', id='refresh-button'),
-    ], className="two columns"),
-    get_latest_update(id="update-status"),
+        html.Button('Update', id='refresh-button'),
+    ], className="three columns"),
+    get_latest_update(id="update-status", className="three columns"),
     html.Div([
         html.P("Database size: "),
         html.P("-", id="dbinfo")
+    ], className="three columns"),
+    html.Div([
+        html.Button('More', id='moreless-button'),
     ]),
-])],
+        html.Div(id="div-db-details"),
+    ])],
     style=nav_bar_style)
 
+moreless={"More": "Less", "Less": "More"}
+
+@app.callback(
+    Output(component_id="div-db-details", component_property="children"),
+    Output(component_id="moreless-button", component_property="children"),
+    Input(component_id="moreless-button", component_property="n_clicks"),
+    Input(component_id="moreless-button", component_property="children")
+
+)
+def showhide_db_details(n_clicks, button_status):
+    if n_clicks is None:
+        raise PreventUpdate
+    else:
+        out=[]
+        if button_status == "More":
+
+            fig = fig_npat_vs_time(engine)
+            out = [dcc.Graph(figure=fig, style={"margin-top": "50px"})]
+
+            fig2 = fig_pat_length_of_stay(engine)
+            out += [dcc.Graph(figure=fig2, style={"margin-top": "50px"})]
+
+        new_status = moreless[button_status]
+        return out, new_status
 
 def execquerey(s, engine, col=None):
     with engine.connect() as con:
@@ -209,7 +264,7 @@ app.layout = html.Div([
     ]),
     html.Div([
         html.Div(id="div-checklists", children=[]),
-        html.P("This here", id="checklist-test")
+        html.P("-", id="checklist-test")
     ]),
     separator,
     html.H2("Patient Display", style={'text-align': 'left'}),

@@ -6,6 +6,9 @@ import sys
 import json
 date_fmt="%Y-%m-%d %H:%M:%S"
 
+clin_tables = ["med", "vatska", "vikt", "respirator", "pressure", "lab", "fio2"]
+all_data_tables = ["overview", "takecare"]+clin_tables+[ "monitorlf", "monitorhf"]
+
 
 def gdate(date_fmt="%Y-%m-%d %H:%M:%S"):
     return datetime.now().strftime(date_fmt)

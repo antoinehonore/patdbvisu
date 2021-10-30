@@ -1,4 +1,6 @@
 create view view__interv_all as (
+	select ids__uid,ids__interval from monitorhf
+	union
 	select ids__uid,ids__interval from monitorlf
 	union
 	select ids__uid,ids__interval from vikt
@@ -24,7 +26,10 @@ create view view__uid_all as (
 );
 
 
-
+create view view__length_of_stay as (
+	select ids__uid, count(ids__interval)*2 as "n_days" from view__interv_all
+	group by ids__uid
+);
 
 
 create view view__monitorlf_has_btb as (
@@ -154,5 +159,119 @@ create view view__uid_has as
         $REGISTERED_UID_TK_EVENTS$
 	from view__uid_all vua
 );
+
+
+create view view__clinisoft_start_end as (
+	select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"
+	from
+	(
+		select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"from med group by ids__uid
+		union
+		select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"from vatska group by ids__uid
+		union
+		select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"from vikt group by ids__uid
+		union
+		select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"from respirator group by ids__uid
+		union
+		select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"from pressure group by ids__uid
+		union
+		select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"from lab group by ids__uid
+		union
+		select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"from fio2 group by ids__uid
+	) as foo
+	group by ids__uid
+	order by interval__start
+);
+
+
+create view view__clinisoft_total_n_patients as
+(
+SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
+FROM (
+select count(ids__uid) as "n_patients", interval__start from view__takecare_start_end vtse
+group by interval__start) as foo
+ORDER  BY foo."interval__start"
+);
+
+
+
+
+
+
+create view view__takecare_start_end as (
+	select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"
+	from takecare
+	group by ids__uid
+	order by interval__start
+);
+
+create view view__takecare_total_n_patients as
+(
+SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
+FROM (
+select count(ids__uid) as "n_patients", interval__start from view__takecare_start_end vtse
+group by interval__start) as foo
+ORDER  BY foo."interval__start"
+);
+
+
+
+create view view__monitorlf_start_end as (
+	select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"
+	from monitorlf
+	group by ids__uid
+	order by interval__start
+);
+
+create view view__monitorlf_total_n_patients as
+(
+SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
+FROM (
+select count(ids__uid) as "n_patients", interval__start from view__takecare_start_end vtse
+group by interval__start) as foo
+ORDER  BY foo."interval__start"
+);
+
+
+
+
+
+create view view__monitorhf_start_end as (
+	select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"
+	from monitorhf
+	group by ids__uid
+	order by interval__start
+);
+
+create view view__monitorhf_total_n_patients as
+(
+SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
+FROM (
+select count(ids__uid) as "n_patients", interval__start from view__takecare_start_end vtse
+group by interval__start) as foo
+ORDER  BY foo."interval__start"
+);
+
+
+
+
+create view view__timeline_n_patients as (
+	select coalesce(a.interval__start,b.interval__start) as "interval__start", total_n_patients__takecare, total_n_patients__clinisoft, total_n_patients__monitorlf, total_n_patients__monitorhf
+	from
+	(
+	select coalesce(c.interval__start, t.interval__start) as "interval__start", total_n_patients__takecare, total_n_patients__clinisoft
+	from view__clinisoft_total_n_patients c
+	full outer join view__takecare_total_n_patients t
+	on c.interval__start = t.interval__start
+	) as a
+	full outer join
+	(
+	select coalesce(mlf.interval__start, mhf.interval__start) as "interval__start", total_n_patients__monitorlf, total_n_patients__monitorhf
+	from view__monitorhf_total_n_patients mhf
+	full outer join view__monitorlf_total_n_patients mlf
+	on mhf.interval__start = mlf.interval__start) as b
+	on b.interval__start = a.interval__start
+	order by interval__start
+)
 
 

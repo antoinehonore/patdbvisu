@@ -283,7 +283,7 @@ def chunk(args):
         id_col = "monid"
         map_tbl = "monitor_meta"
         ovid_col = id_col
-        agg_fun = partial(aggregate_mon_data, signame=signame, bedlabel=bedlabel,unitname=unitname)
+        agg_fun = partial(aggregate_mon_data, signame=signame, bedlabel=bedlabel, unitname=unitname)
 
     elif tkdata_test(bname):
         df = pd.read_csv(fname, sep=";")

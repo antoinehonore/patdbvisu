@@ -218,6 +218,9 @@ app.layout = html.Div([
     ]),
     separator
 ])
-
+import socket
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    if socket.gethostname() == "cmm0576":
+        app.run_server(debug=True)
+    else:
+        app.run_server(debug=False)

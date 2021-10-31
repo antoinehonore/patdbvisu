@@ -337,7 +337,6 @@ app.layout = html.Div([
     separator,
     navbar,
     separator,
-    html.Div(id='body-div', style={"margin-top": "0px"}),
     html.H2("Population study", style={'text-align': 'left'}),
     html.Div([
         html.Button('More', id='morechecklist-button'),

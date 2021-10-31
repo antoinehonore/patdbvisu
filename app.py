@@ -198,7 +198,6 @@ def update_completion_data(n_clicks, dropdown):
 moreless = {"More": "Less", "Less": "More"}
 
 @app.callback(
-    Output(component_id="update-status", component_property="children"),
     Output(component_id="div-db-details", component_property="children"),
     Output(component_id="moreless-button", component_property="children"),
     Input(component_id="moreless-button", component_property="n_clicks"),
@@ -228,12 +227,14 @@ def showhide_db_details(n_clicks, refresh_click,button_status):
             out += [dcc.Graph(figure=fig2, style={"margin-top": "50px"})]
 
         new_status = moreless[button_status]
-        return get_update_status(start_),out, new_status
+        return out, new_status
 
 def execquerey(s, engine, col=None):
     with engine.connect() as con:
         df = pd.read_sql(s, con)
     return df
+
+
 
 @app.callback(
     Output(component_id="update-status", component_property="children"),

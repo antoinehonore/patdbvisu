@@ -109,6 +109,26 @@ create view view__overview_uid_has as
 	from overview
 );
 
+create view view__monitorlf_has as
+(
+	select ids__uid ,ids__interval
+	from monitorlf
+);
+
+create view view__monitorhf_has as
+(
+	select ids__uid ,ids__interval
+	from monitorhf
+);
+
+
+create view view__takecare_has as
+(
+	select ids__uid ,ids__interval
+	from takecare
+	where extra notnull
+);
+
 create view view__takecare_uid_has as
 (
 	select distinct ids__uid
@@ -123,6 +143,12 @@ create view view__vikt_has as
 	select ids__uid ,ids__interval
 	from vikt
 	where cirk_vikt notnull
+);
+
+create view view__vikt_uid_has as
+(
+	select distinct ids__uid
+	from view__vikt_has
 );
 
 create view view__vikt_uid_has as
@@ -184,6 +210,23 @@ create view view__clinisoft_start_end as (
 );
 
 
+create view view__clinisoft_has as (
+    select ids__uid,ids__interval from med
+    union
+    select ids__uid,ids__interval from vatska
+    union
+    select ids__uid,ids__interval from vikt
+    union
+    select ids__uid,ids__interval from respirator
+    union
+    select ids__uid,ids__interval from pressure
+    union
+    select ids__uid,ids__interval from lab
+    union
+    select ids__uid,ids__interval from fio2
+);
+
+
 create view view__clinisoft_total_n_patients as
 (
 SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
@@ -192,9 +235,6 @@ select count(ids__uid) as "n_patients", interval__start from view__takecare_star
 group by interval__start) as foo
 ORDER  BY foo."interval__start"
 );
-
-
-
 
 
 

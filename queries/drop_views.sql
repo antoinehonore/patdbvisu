@@ -22,22 +22,25 @@ drop view if exists view__vikt_uid_has;
 drop view if exists view__vikt_has;
 
 drop view if exists view__overview_uid_has;
-drop view if exists view__takecare_uid_has;
 
+drop view if exists view__takecare_uid_has;
+drop view if exists view__takecare_has;
 
 
 
 drop view if exists view__timeline_n_patients;
 
-
+drop view if exists view__clinisoft_has;
 drop view if exists view__clinisoft_total_n_patients;
 drop view if exists view__clinisoft_start_end;
 
 drop view if exists view__takecare_total_n_patients;
 drop view if exists view__takecare_start_end;
 
+drop view if exists view__monitorlf_has;
 drop view if exists view__monitorlf_total_n_patients;
 drop view if exists view__monitorlf_start_end;
 
+drop view if exists view__monitorhf_has;
 drop view if exists view__monitorhf_total_n_patients;
 drop view if exists view__monitorhf_start_end;

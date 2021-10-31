@@ -23,11 +23,24 @@ def get_db_size():
     return d.loc[0, "pg_size_pretty"]
 
 
-def gentbl(df):
+def get_db_npat():
+    with engine.connect() as con:
+        d = pd.read_sql("select count(distinct ids__uid) as \"ids__uid\" from view__uid_all", con)
+    return "{} patients".format(d.loc[0, "ids__uid"])
+
+
+def gentbl(df,style_table={'overflowX': 'auto'}):
     return dt.DataTable(id='table',
                         columns=[{"name": i, "id": i} for i in df.columns],
                         data=df.to_dict('records'),
-                        **style_tbl, page_size=10, style_table={'overflowX': 'auto'})
+                        **style_tbl, page_size=10, style_table=style_table)
+
+def gentbl_raw(df, id="newtbl",**kwargs):
+    return dt.DataTable(id=id,
+                        columns=[{"name": i, "id": i} for i in df.columns],
+                        data=df.to_dict('records'),
+                        **kwargs)
+
 
 
 def get_update_status(start_):
@@ -87,8 +100,8 @@ nav_bar_style = {}
 
 separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
 
-def get_latest_update(id="update-status",className=None):
-   return html.Div([html.P("Latest update: "), html.P("-", id=id)], className=className)
+def get_latest_update(id,**kwargs):
+   return html.Div([html.H3("Latest update: "), html.P("-", id=id)], **kwargs)
 
 
 def fig_npat_vs_time(engine):
@@ -123,32 +136,71 @@ def fig_pat_length_of_stay(engine):
     return fig
 
 
-navbar = html.Div(children=[html.Ul(children=[html.Div([
-    html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-    ]),
-    html.Div([
-        html.Button('Update', id='refresh-button'),
-    ], className="three columns"),
-    get_latest_update(id="update-status", className="three columns"),
-    html.Div([
-        html.P("Database size: "),
-        html.P("-", id="dbinfo")
-    ], className="three columns"),
-    html.Div([
-        html.Button('More', id='moreless-button'),
-    ]),
-        html.Div(id="div-db-details"),
-    ])],
+def create_completion_dropdown():
+    all_labels = ["Takecare", "Clinisoft", "Monitor LF", "Monitor HF"]
+    all_values = [k.lower().replace(" ","") for k in all_labels]
+    tmp = dcc.Dropdown(
+        options=[{"label":l, "value":v} for l,v in zip(all_labels,all_values)],
+        value=all_values,
+        # labelStyle={"display": "inline-block"},
+        id="completion-dropdown",
+        multi=True,
+        placeholder="Choose the data sources",
+        style=dict(width="450px")
+    )
+    return tmp
+
+cname=None
+thestyle={'padding': 10, 'flex': 1}
+thestyle={"margin":"auto"}
+navbar = html.Div(children=[
+            html.Div([
+                html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
+            ]),
+            html.Div([
+                html.Button('Update', id='refresh-button', style=thestyle),
+                get_latest_update("update-status", style=thestyle),
+                html.Div([
+                    html.H3("Database size: "),
+                    html.P("-", id="dbinfo-size"),
+                    html.P("-", id="dbinfo-npat")
+                ], style=thestyle),
+                html.Button('More', id='moreless-button',style=thestyle)
+            ], style={'display': 'flex', 'flex-direction': 'row'}),
+            html.Div([
+                html.H2("Data overlap", style={'text-align': 'left'}),
+                html.Div(id="div-db-completion", children=[create_completion_dropdown(),
+                                                           html.P("-", id="completion-result")]),
+                html.Div(id="div-db-details"),
+            ])
+        ],
     style=nav_bar_style)
 
-moreless={"More": "Less", "Less": "More"}
+
+@app.callback(
+    Output("completion-result", "children"),
+    Input("refresh-button", "n_clicks"),
+    Input("completion-dropdown", "value")
+)
+def update_completion_data(n_clicks, dropdown):
+    if n_clicks is None:
+        raise PreventUpdate
+    else:
+        query_s = " intersect ".join(["select * from view__{}_has".format(k) for k in dropdown])+"\n order by ids__uid"
+        query_s = "select count(distinct ids__uid) as \"Number of patients\", count(distinct ids__interval) as \"Number of intervals\" from (\n" + \
+                  query_s +\
+                  "\n) as foo;"
+        with engine.connect() as con:
+            intersection_data = pd.read_sql(query_s, con)
+    return gentbl_raw(intersection_data,id="completion-count-tbl",style_table={"width":"450px"})
+
+moreless = {"More": "Less", "Less": "More"}
 
 @app.callback(
     Output(component_id="div-db-details", component_property="children"),
     Output(component_id="moreless-button", component_property="children"),
     Input(component_id="moreless-button", component_property="n_clicks"),
     Input(component_id="moreless-button", component_property="children")
-
 )
 def showhide_db_details(n_clicks, button_status):
     if n_clicks is None:
@@ -174,7 +226,8 @@ def execquerey(s, engine, col=None):
 @app.callback(
     Output(component_id='body-div', component_property='children'),
     Output(component_id="update-status", component_property="children"),
-    Output(component_id="dbinfo", component_property="children"),
+    Output(component_id="dbinfo-size", component_property="children"),
+    Output(component_id="dbinfo-npat", component_property="children"),
     Input(component_id='refresh-button', component_property='n_clicks')
 )
 def update_output(n_clicks):
@@ -185,7 +238,7 @@ def update_output(n_clicks):
     else:
         df = execquerey("select * from overview;", engine)
         out = gentbl(df)
-    return out, get_update_status(start_), get_db_size()
+    return out, get_update_status(start_), get_db_size(),get_db_npat()
 
 
 @app.callback(

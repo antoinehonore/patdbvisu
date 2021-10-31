@@ -87,7 +87,8 @@ engine = get_engine(verbose=False, **dbcfg)
 
 app = dash.Dash(
     __name__,
-    external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"])
+    external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+)
 
 nav_bar_style = {"background-repeat": "no-repeat",
                  "background-position": "right top",
@@ -200,14 +201,23 @@ moreless = {"More": "Less", "Less": "More"}
     Output(component_id="div-db-details", component_property="children"),
     Output(component_id="moreless-button", component_property="children"),
     Input(component_id="moreless-button", component_property="n_clicks"),
+    Input(component_id='refresh-button', component_property='n_clicks'),
     Input(component_id="moreless-button", component_property="children")
+
 )
-def showhide_db_details(n_clicks, button_status):
+def showhide_db_details(n_clicks, refresh_click,button_status):
     if n_clicks is None:
         raise PreventUpdate
     else:
-        out=[]
-        if button_status == "More":
+        ctx = dash.callback_context
+
+        if not ctx.triggered:
+            button_id = 'No clicks yet'
+        else:
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
+        out = []
+        if (button_status == "More") or (button_id=="refresh-button" and button_status == "Less"):
 
             fig = fig_npat_vs_time(engine)
             out = [dcc.Graph(figure=fig, style={"margin-top": "50px"})]
@@ -238,7 +248,7 @@ def update_output(n_clicks):
     else:
         df = execquerey("select * from overview;", engine)
         out = gentbl(df)
-    return out, get_update_status(start_), get_db_size(),get_db_npat()
+    return out, get_update_status(start_), get_db_size(), get_db_npat()
 
 
 @app.callback(
@@ -254,12 +264,12 @@ def update_check_lists(clickless, clickmore, checklist):
         button_id = 'No clicks yet'
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
     init_val = []
     if button_id == "lesschecklist-button":
         return checklist[:-1]
     else:
         # print(button_id, clickless, clickmore, checklist[-1] if len(checklist) else checklist)
+        print(button_id)
 
         if len(checklist) > 0:
             init_val = checklist[-1]["props"]["value"]

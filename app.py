@@ -234,7 +234,6 @@ def execquerey(s, engine, col=None):
     return df
 
 @app.callback(
-    Output(component_id='body-div', component_property='children'),
     Output(component_id="update-status", component_property="children"),
     Output(component_id="dbinfo-size", component_property="children"),
     Output(component_id="dbinfo-npat", component_property="children"),
@@ -245,10 +244,8 @@ def update_output(n_clicks):
 
     if n_clicks is None:
         raise PreventUpdate
-    else:
-        df = execquerey("select * from overview;", engine)
-        out = gentbl(df)
-    return out, get_update_status(start_), get_db_size(), get_db_npat()
+
+    return get_update_status(start_), get_db_size(), get_db_npat()
 
 
 @app.callback(
@@ -268,9 +265,6 @@ def update_check_lists(clickless, clickmore, checklist):
     if button_id == "lesschecklist-button":
         return checklist[:-1]
     else:
-        # print(button_id, clickless, clickmore, checklist[-1] if len(checklist) else checklist)
-        print(button_id)
-
         if len(checklist) > 0:
             init_val = checklist[-1]["props"]["value"]
             pass

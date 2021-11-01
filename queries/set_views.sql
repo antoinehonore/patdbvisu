@@ -151,12 +151,6 @@ create view view__vikt_uid_has as
 	from view__vikt_has
 );
 
-create view view__vikt_uid_has as
-(
-	select distinct ids__uid
-	from view__vikt_has
-);
-
 
 
 create view view__has as
@@ -229,9 +223,9 @@ create view view__clinisoft_has as (
 
 create view view__clinisoft_total_n_patients as
 (
-SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
+SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients__clinisoft"
 FROM (
-select count(ids__uid) as "n_patients", interval__start from view__takecare_start_end vtse
+select count(ids__uid) as "n_patients", interval__start from view__clinisoft_start_end vtse
 group by interval__start) as foo
 ORDER  BY foo."interval__start"
 );
@@ -247,7 +241,7 @@ create view view__takecare_start_end as (
 
 create view view__takecare_total_n_patients as
 (
-SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
+SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients__takecare"
 FROM (
 select count(ids__uid) as "n_patients", interval__start from view__takecare_start_end vtse
 group by interval__start) as foo
@@ -265,9 +259,9 @@ create view view__monitorlf_start_end as (
 
 create view view__monitorlf_total_n_patients as
 (
-SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
+SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients__monitorlf"
 FROM (
-select count(ids__uid) as "n_patients", interval__start from view__takecare_start_end vtse
+select count(ids__uid) as "n_patients", interval__start from view__monitorlf_start_end vtse
 group by interval__start) as foo
 ORDER  BY foo."interval__start"
 );
@@ -285,9 +279,9 @@ create view view__monitorhf_start_end as (
 
 create view view__monitorhf_total_n_patients as
 (
-SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients"
+SELECT foo.interval__start as "interval__start", sum(n_patients) OVER (rows between unbounded preceding and current row) AS "total_n_patients__monitorhf"
 FROM (
-select count(ids__uid) as "n_patients", interval__start from view__takecare_start_end vtse
+select count(ids__uid) as "n_patients", interval__start from view__monitorhf_start_end vtse
 group by interval__start) as foo
 ORDER  BY foo."interval__start"
 );

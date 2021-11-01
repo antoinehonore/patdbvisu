@@ -36,6 +36,8 @@ queries2 = {k: s2.format(v) for k, v in d.items()}
 drop = {k: s3.format(k) for k in d.keys()}
 drop_uid = {k: s4.format(k) for k in d.keys()}
 
+patview_list_query = "SELECT distinct table_name FROM information_schema.columns "\
+               "WHERE table_schema = 'public' AND table_name like 'patview_%%'"
 
 dbcfg = get_dbcfg("cfg/db.cfg")
 
@@ -57,6 +59,13 @@ if __name__ == "__main__":
             engine.execute(v)
         for k, v in drop_uid.items():
             engine.execute(v)
+
+        with engine.connect() as con:
+            patview_list = pd.read_sql(patview_list_query, con)["table_name"].values.tolist()
+
+        if len(patview_list) > 0:
+            engine.execute("\n".join(["drop view if exists {};".format(k) for k in patview_list]))
+
         sys.exit(0)
 
     q1_str = {}

@@ -6,12 +6,11 @@ from dash import Dash, dcc, html, Input, Output, State, callback
 from dash import dash_table as dt
 from dash_extensions import Download
 from dash_extensions.snippets import send_data_frame
+from bin.utils import get_engine, get_dbcfg, gdate, all_data_tables, get_colnames,ref_cols,run_select_queries
 import pandas as pd
-from bin.utils import get_engine, get_dbcfg, date_fmt, gdate, all_data_tables, get_colnames,ref_cols,run_select_queries
-import pandas as pd
-import dash_bootstrap_components as dbc
 from dash.exceptions import PreventUpdate
 from datetime import datetime
+import socket
 
 
 def pat_data_q(tbl_name, ids__uid, col="*"):
@@ -395,8 +394,6 @@ app.layout = html.Div([
     separator
 ])
 
-
-import socket
 
 if __name__ == "__main__":
     if socket.gethostname() == "cmm0576":

@@ -26,8 +26,8 @@ Watches established.
 - [x] data_monitor_pat{1..1000}/HF__*.csv
 - [x] data_monitor_pat{1000..1500}/LF__*.csv
 - [x] data_monitor_pat{1000..1500}/HF__*.csv
-- [ ] (on going...) data_monitor_191SG-1_pat{1..1000}/LF__*.csv
-- [ ] (on going...) data_monitor_191SG-1_pat{1..1000}/HF__*.csv
+- [ ] **(on going...)** data_monitor_191SG-1_pat{1..1000}/LF__*.csv
+- [ ] **(on going...)** data_monitor_191SG-1_pat{1..1000}/HF__*.csv
 - [ ] data_monitor_191SG-1_pat{1000..2000}/LF__*.csv
 - [ ] data_monitor_191SG-1_pat{1000..2000}/HF__*.csv
 - [ ] data_monitor_NEO_1901_pat{1..1000}/LF__*.csv

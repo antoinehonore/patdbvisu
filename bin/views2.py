@@ -14,6 +14,36 @@ parser.add_argument("--drop", dest='drop', action='store_const',
 
 import plotly.graph_objects as go
 import plotly.express as px
+
+import numpy as np
+
+def get_med_str(dd,digits=3)-> list:
+    """Compute medians for each of the scores(i.e. columns) in the input `pd.DataFrame`."""
+    return [str(x) for x in np.round(dd.median(), digits).values]
+
+
+def get_q_str(dd,digits=3,short=False)->list:
+    """Format the inter-quartile range for each score."""
+    tmp_quartile = tuple(np.round(dd.quantile([0.25, 0.75]).values, digits))
+    Q1, Q3 = tuple(tmp_quartile)
+    if short:
+        q_str = ["({})".format(round(q3-q1, digits)) for q1, q3 in zip(Q1, Q3)]
+    else:
+        q_str = ["({}-{})".format(q1, q3) for q1, q3 in zip(Q1, Q3)]
+    return q_str
+
+
+def join_str(*args):
+    """Iteratively join elements of lists of `str`.
+     The lists must all be the same size."""
+    return [[" ".join([a, b]) for a, b in zip(*args)]]
+
+
+def format_desc(dd, dtype=np.float64, digits=3, short=False):
+    return join_str(get_med_str(dd.astype(dtype), digits=digits), get_q_str(dd.astype(dtype), short=short, digits=digits))
+
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
 
@@ -32,9 +62,11 @@ if __name__ == "__main__":
 "AND    attnum > 0 AND    NOT attisdropped " \
 "GROUP  BY attrelid;"
 
-with engine.connect() as con:
-    df = pd.read_sql(transpose_q,con)
 
+
+
+with engine.connect() as con:
+    df = pd.read_sql(transpose_q, con)
 
 out = engine.execute(df["sql"].iloc[0])
 

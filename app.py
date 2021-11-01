@@ -4,6 +4,7 @@ import plotly.express as px
 import dash
 from dash import Dash, dcc, html, Input, Output, State, callback
 from dash import dash_table as dt
+from dash_extensions import Download
 
 import pandas as pd
 from bin.utils import get_engine, get_dbcfg, date_fmt, gdate, all_data_tables, get_colnames,ref_cols,run_select_queries
@@ -143,9 +144,9 @@ def fig_pat_length_of_stay(engine):
 
 def create_completion_dropdown():
     all_labels = ["Takecare", "Clinisoft", "Monitor LF", "Monitor HF"]
-    all_values = [k.lower().replace(" ","") for k in all_labels]
+    all_values = [k.lower().replace(" ", "") for k in all_labels]
     tmp = dcc.Dropdown(
-        options=[{"label":l, "value":v} for l,v in zip(all_labels,all_values)],
+        options=[{"label": l, "value": v} for l, v in zip(all_labels, all_values)],
         value=all_values,
         # labelStyle={"display": "inline-block"},
         id="completion-dropdown",
@@ -192,12 +193,14 @@ def update_completion_data(n_clicks, dropdown):
         raise PreventUpdate
     else:
         query_s = " intersect ".join(["select * from view__{}_has".format(k) for k in dropdown])+"\n order by ids__uid"
-        query_s = "select count(distinct ids__uid) as \"Number of patients\", count(distinct ids__interval) as \"Number of intervals\" from (\n" + \
-                  query_s +\
-                  "\n) as foo;"
+        query_s = "select count(distinct ids__uid) as \"Number of patients\","\
+                  "count(distinct ids__interval) as \"Number of intervals\" from (\n" + \
+                  query_s + "\n) as foo;"
+
         with engine.connect() as con:
             intersection_data = pd.read_sql(query_s, con)
-    return gentbl_raw(intersection_data,id="completion-count-tbl",style_table={"width":"450px"})
+
+    return gentbl_raw(intersection_data, id="completion-count-tbl", style_table={"width": "450px"})
 
 moreless = {"More": "Less", "Less": "More"}
 
@@ -209,7 +212,7 @@ moreless = {"More": "Less", "Less": "More"}
     Input(component_id="moreless-button", component_property="children")
 
 )
-def showhide_db_details(n_clicks, refresh_click,button_status):
+def showhide_db_details(n_clicks, refresh_click, button_status):
     if n_clicks is None:
         raise PreventUpdate
     else:
@@ -222,7 +225,7 @@ def showhide_db_details(n_clicks, refresh_click,button_status):
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
         out = []
-        if (button_status == "More") or (button_id=="refresh-button" and button_status == "Less"):
+        if (button_status == "More") or (button_id == "refresh-button" and button_status == "Less"):
 
             fig = fig_npat_vs_time(engine)
             out = [dcc.Graph(figure=fig, style={"margin-top": "50px"})]
@@ -317,27 +320,61 @@ def cb_render(n_clicks, patid):
         return [gentbl(data_lvl1["overview"])], get_update_status(start_)
 
 
+from functools import partial
+
+def export_fun(df):
+    return partial(df.to_csv,sep=";",index=False)
+
+
+from dash_extensions.snippets import send_data_frame
 @app.callback(
     Output(component_id="checklist-test", component_property="children"),
+    Output(component_id="downloadchecklists", component_property="data"),
     Input(component_id="updatechecklists-button", component_property='n_clicks'),
     Input(component_property="children", component_id="div-checklists"),
+    Input(component_id="downloadchecklists-button", component_property='n_clicks'),
 )
-def update_checklist_test(n_clicks, checklists):
-    if n_clicks is None:
+def update_checklist_test(n_clicks, checklists, dl_click):
+    if (n_clicks is None) and (dl_click is None):
         raise PreventUpdate
     else:
         OUT = []
-        for v in checklists:
+        DF = []
+        isempty=[]
+        for i,v in enumerate(checklists):
             if len(v["props"]["value"]) > 0:
                 thequery = "select ids__uid from view__uid_has where {}".format(
                     cond_from_checklist(v["props"]["value"]))
 
                 with engine.connect() as con:
                     dout = pd.read_sql(thequery, con).values.reshape(-1)
+                    doverview = pd.read_sql("select * from overview where ids__uid in ({});".format("\'"+"\',\'".join(dout.tolist())+"\'"), con)
+                    doverview["group"] = "_".join(v["props"]["value"])
+                # doverview.to_csv("test.csv", sep=";", index=False)
+                DF.append(doverview)
                 OUT.append("\n".join(dout.tolist()))
-        return "\n".join(OUT)
+            else:
+                isempty.append(i+1)
+        ctx = dash.callback_context
 
+        if not ctx.triggered:
+            button_id = 'No clicks yet'
+        else:
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
+        print(button_id)
+        #isempty = [dd.shape[0] for dd in DF]
+        print(len(DF), isempty, len(isempty), len(checklists))
+
+        if len(isempty) > 0:
+            return "\!/ Empty category: {}".format(", ".join(list(map(str, isempty)))), None
+        else:
+            dout = pd.concat(DF, axis=0)
+
+            if button_id == "downloadchecklists-button":
+                return "Download", send_data_frame(dout.to_excel, filename="PopulationsOverview.xlsx")
+            else:
+                return str(OUT), None
 
 
 app.layout = html.Div([
@@ -348,8 +385,9 @@ app.layout = html.Div([
     html.Div([
         html.Button('More', id='morechecklist-button'),
         html.Button('Less', id='lesschecklist-button'),
-        html.Button('Update', id='updatechecklists-button')
-    ]),
+        html.Button('Update', id='updatechecklists-button'),
+        html.Div([html.Button("Download xlsx", id="downloadchecklists-button"), Download(id="downloadchecklists")])
+    ], style={'display': 'flex', 'flex-direction': 'row'}),
     html.Div([
         html.Div(id="div-checklists", children=[]),
         html.P("-", id="checklist-test")
@@ -364,7 +402,10 @@ app.layout = html.Div([
     ]),
     separator
 ])
+
+
 import socket
+
 if __name__ == "__main__":
     if socket.gethostname() == "cmm0576":
         app.run_server(debug=True)

@@ -9,9 +9,25 @@ date_fmt="%Y-%m-%d %H:%M:%S"
 
 clin_tables = ["med", "vatska", "vikt", "respirator", "pressure", "lab", "fio2"]
 all_data_tables = ["overview", "takecare"]+clin_tables+[ "monitorlf", "monitorhf"]
+all_data_tables2 = ["takecare"]+clin_tables+[ "monitorlf", "monitorhf"]
 
 ref_cols = ["\""+s+"\"" for s in ['ids__uid', 'ids__interval', 'interval__raw', 'interval__start', 'interval__end']]
 
+
+query_size = "select {} from "\
+            "(select * from {} "\
+            "where ids__interval = '{}') as foo;"
+
+
+def define_col_db_size_query(k, con):
+    return ", ".join(list(map(lambda s: "pg_column_size(" + s + ") as " + s, get_colnames(k, con))))
+
+
+def get_size_interval(ids__interval, engine):
+    with engine.connect() as con:
+        dout = {k: pd.read_sql(query_size.format(define_col_db_size_query(k, con), k, ids__interval), con).sum(1) for k in all_data_tables2}
+        dout = {k: int(v.values[0]) for k, v in dout.items() if not v.empty}
+    return dout
 
 
 def run_select_queries(select_queries, engine):
@@ -22,6 +38,7 @@ def run_select_queries(select_queries, engine):
             non_empty_col = (df.notna().sum(0) != 0)
             data[k] = df[non_empty_col.index.values[non_empty_col.values].tolist()]
     return data
+
 
 def get_colnames(k, con):
     df = pd.read_sql("select column_name   FROM information_schema.columns "\

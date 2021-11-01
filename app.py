@@ -288,6 +288,8 @@ thecase = "case when ({} notnull) then True else NULL end as {}"
 the_cases = {k: ",\n".join([col if (k == "overview") or (col in ref_cols) else thecase.format(col, col)
                            for col in all_cols[k]]) for k in all_data_tables}
 
+import re
+re_is_patid=re.compile("^[a-zA-Z0-9]*$")
 
 @app.callback(
     Output("patientid-disp", "children"),
@@ -300,22 +302,29 @@ def cb_render(n_clicks, patid):
         raise PreventUpdate
     else:
         start_ = datetime.now()
+        #print(isinstance(patid, str), len(patid) == 64, re_is_patid.fullmatch(patid))
 
-        create_views_queries = {
-            k: "create or replace view patview_{}_{} as (select * from {} where ids__uid='{}');".format(k, patid, k, patid) for k
-            in all_data_tables}
+        if (patid is None) or ((isinstance(patid, str) and ((len(patid) != 64) or not re_is_patid.fullmatch(patid)))):
+            out = [html.P("not a patid: {}".format(patid))]
+        else:
+            with engine.connect() as con:
+                id_in_db = pd.read_sql("select * from view__uid_all where ids__uid = '{}'".format(patid), con)
 
-        engine.execute("\n".join([v for v in create_views_queries.values()]))
+            if id_in_db.shape[0] == 0:
+                out = [html.P("patid not found in DB: {}".format(patid))]
+            else:
+                create_views_queries = {
+                    k: "create or replace view patview_{}_{} as (select * from {} where ids__uid='{}');".format(k, patid, k, patid) for k
+                    in all_data_tables}
 
-        select_queries = {k: "select {} from patview_{}_{}".format(the_cases[k], k, patid) for k in all_data_tables}
+                engine.execute("\n".join([v for v in create_views_queries.values()]))
 
-        data_lvl1 = run_select_queries(select_queries, engine)
+                select_queries = {k: "select {} from patview_{}_{}".format(the_cases[k], k, patid) for k in all_data_tables}
 
- #       drop_views_queries = {k: "drop view if exists patview_{}_{};".format(k, patid) for k in all_data_tables}
+                data_lvl1 = run_select_queries(select_queries, engine)
+                out = [gentbl(data_lvl1["overview"])]
 
-
-#        d = {k: execquerey(pat_data_q(k, patid, col="ids__uid"), engine) for k in all_data_tables}
-        return [gentbl(data_lvl1["overview"])], get_update_status(start_)
+        return out, get_update_status(start_)
 
 
 @app.callback(

@@ -230,6 +230,7 @@ def showhide_db_details(n_clicks, refresh_click, button_status):
             fig2 = fig_pat_length_of_stay(engine)
             out += [dcc.Graph(figure=fig2, style={"margin-top": "50px"})]
 
+        new_status = button_status
         if button_id == "moreless-button":
             new_status = moreless[button_status]
 

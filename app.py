@@ -302,11 +302,8 @@ def cb_render(n_clicks, patid):
         raise PreventUpdate
     else:
         start_ = datetime.now()
-        #print(isinstance(patid, str), len(patid) == 64, re_is_patid.fullmatch(patid))
 
-        if (patid is None) or ((isinstance(patid, str) and ((len(patid) != 64) or not re_is_patid.fullmatch(patid)))):
-            out = [html.P("not a patid: {}".format(patid))]
-        else:
+        if (len(str(patid)) == 64) and (re_is_patid.fullmatch(str(patid))):
             with engine.connect() as con:
                 id_in_db = pd.read_sql("select * from view__uid_all where ids__uid = '{}'".format(patid), con)
 
@@ -323,6 +320,9 @@ def cb_render(n_clicks, patid):
 
                 data_lvl1 = run_select_queries(select_queries, engine)
                 out = [gentbl(data_lvl1["overview"])]
+
+        else:
+            out = [html.P("not a patid: {}".format(patid))]
 
         return out, get_update_status(start_)
 

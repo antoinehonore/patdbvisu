@@ -5,7 +5,7 @@ import dash
 from dash import Dash, dcc, html, Input, Output, State, callback
 from dash import dash_table as dt
 from dash_extensions import Download
-
+from dash_extensions.snippets import send_data_frame
 import pandas as pd
 from bin.utils import get_engine, get_dbcfg, date_fmt, gdate, all_data_tables, get_colnames,ref_cols,run_select_queries
 import pandas as pd
@@ -30,22 +30,21 @@ def get_db_npat():
     return "{} patients".format(d.loc[0, "ids__uid"])
 
 
-def gentbl(df,style_table={'overflowX': 'auto'}):
+def gentbl(df, style_table={'overflowX': 'auto'}):
     return dt.DataTable(id='table',
                         columns=[{"name": i, "id": i} for i in df.columns],
                         data=df.to_dict('records'),
                         **style_tbl, page_size=10, style_table=style_table)
 
-def gentbl_raw(df, id="newtbl",**kwargs):
+def gentbl_raw(df, id="newtbl", **kwargs):
     return dt.DataTable(id=id,
                         columns=[{"name": i, "id": i} for i in df.columns],
                         data=df.to_dict('records'),
                         **kwargs)
 
 
-
 def get_update_status(start_):
-    return [gdate(), html.Br(), "({} ms)".format(round(((datetime.now() - start_).total_seconds()) * 1000, 1))]
+    return [html.P(gdate()), html.P("({} ms)".format(round(((datetime.now() - start_).total_seconds()) * 1000, 1)))]
 
 
 def cond_from_checklist(value):
@@ -107,7 +106,7 @@ nav_bar_style = {}
 separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
 
 def get_latest_update(id,**kwargs):
-   return html.Div([html.H3("Latest update: "), html.P("-", id=id)], **kwargs)
+   return html.Div([html.H3("Latest update: "), html.Div([html.P("-"),html.P("-")], id=id)], **kwargs)
 
 
 def fig_npat_vs_time(engine):
@@ -165,7 +164,7 @@ navbar = html.Div(children=[
             ]),
             html.Div([
                 html.Button('Update', id='refresh-button', style=thestyle),
-                get_latest_update("update-status", style=thestyle),
+                html.Div(get_latest_update("update-status", style=thestyle)),
                 html.Div([
                     html.H3("Database size: "),
                     html.P("-", id="dbinfo-size"),
@@ -320,13 +319,6 @@ def cb_render(n_clicks, patid):
         return [gentbl(data_lvl1["overview"])], get_update_status(start_)
 
 
-from functools import partial
-
-def export_fun(df):
-    return partial(df.to_csv,sep=";",index=False)
-
-
-from dash_extensions.snippets import send_data_frame
 @app.callback(
     Output(component_id="checklist-test", component_property="children"),
     Output(component_id="downloadchecklists", component_property="data"),

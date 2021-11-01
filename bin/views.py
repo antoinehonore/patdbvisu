@@ -47,25 +47,28 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--drop", dest='drop', action='store_const',
                     const=True, default=False,
                     help='Only drop all views.')
+parser.add_argument("--clean", dest='clean', action='store_const',
+                    const=True, default=False,
+                    help='Clean the patview__')
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    if args.drop:
-        main_drop_query = read_query_file("queries/drop_views.sql")
-        engine.execute(main_drop_query)
-        for k, v in drop.items():
-            engine.execute(v)
-        for k, v in drop_uid.items():
-            engine.execute(v)
-
+    if args.drop or args.clean:
         with engine.connect() as con:
             patview_list = pd.read_sql(patview_list_query, con)["table_name"].values.tolist()
 
         if len(patview_list) > 0:
             engine.execute("\n".join(["drop view if exists {};".format(k) for k in patview_list]))
 
+        if args.drop:
+            main_drop_query = read_query_file("queries/drop_views.sql")
+            engine.execute(main_drop_query)
+            for k, v in drop.items():
+                engine.execute(v)
+            for k, v in drop_uid.items():
+                engine.execute(v)
         sys.exit(0)
 
     q1_str = {}

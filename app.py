@@ -116,10 +116,9 @@ def fig_npat_vs_time(engine):
         k: k.replace("total_n_patients__", "").capitalize().replace("torlf", "tor LF").replace("torhf", "tor HF")
         for k in df.columns}, inplace=True)
 
-    fig = px.line(df, template="none")
-
+    fig = px.scatter(df, template="none")
     fig.update_layout(font={"size": 30}, legend_title="Source")
-    fig.update_traces(line=dict(width=5))
+    fig.update_traces(mode="markers+lines", line=dict(width=5), marker=dict(size=10))
 
     fig.update_xaxes(title="")
     fig.update_yaxes(title="Number of Patients", automargin=True)

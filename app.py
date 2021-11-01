@@ -89,6 +89,10 @@ app = dash.Dash(
     __name__,
     external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 )
+app.title = "Oh My DB !"
+
+
+
 
 nav_bar_style = {"background-repeat": "no-repeat",
                  "background-position": "right top",
@@ -209,7 +213,7 @@ def showhide_db_details(n_clicks, refresh_click,button_status):
     if n_clicks is None:
         raise PreventUpdate
     else:
-        start_=datetime.now()
+        start_ = datetime.now()
         ctx = dash.callback_context
 
         if not ctx.triggered:

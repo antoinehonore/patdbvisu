@@ -42,7 +42,9 @@ def join_str(*args):
 def format_desc(dd, dtype=np.float64, digits=3, short=False):
     return join_str(get_med_str(dd.astype(dtype), digits=digits), get_q_str(dd.astype(dtype), short=short, digits=digits))
 
+from utils import get_colnames
 
+all_data_tables.pop(0)
 
 if __name__ == "__main__":
     args = parser.parse_args()

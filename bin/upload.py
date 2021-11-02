@@ -126,7 +126,7 @@ def fmt_sqldtype(x):
     else:
         out = str(x)
 
-    if not any([s == out for s in ["-", "nan", ".","NULL","None","NaT"]]):
+    if not any([s == out for s in ["eJzjAgAACwAL", "-", "nan", ".", "NULL", "None", "NaT"]]):
         return "\'{}\'".format(out)
     else:
         return "NULL"

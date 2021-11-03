@@ -28,8 +28,8 @@
     - [x] Input error display
     - [x] Return the overview row with only non-null columns
   - [ ] Port the patid convert function
-    - [ ] Load the patid/PN database in postgresql
-    - [ ] Display the PN results
+    - [ ] **(partially done)** Load the patid/PN database in postgresql
+    - [x] Display the PN results
   - [ ] Patients intervals viewer
     - [ ] Selection of the data to plot
     - [ ] Display of the data

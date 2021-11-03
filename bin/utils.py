@@ -5,7 +5,7 @@ import sys
 import pandas as pd
 
 import json
-date_fmt="%Y-%m-%d %H:%M:%S"
+date_fmt = "%Y-%m-%d %H:%M:%S"
 
 clin_tables = ["med", "vatska", "vikt", "respirator", "pressure", "lab", "fio2"]
 all_data_tables = ["overview", "takecare"]+clin_tables+[ "monitorlf", "monitorhf"]
@@ -66,7 +66,7 @@ def pidprint(*arg, flag="status"):
     - datetime.now()
     - flag, specified as a keyword
     """
-    print("[{}] [{}] [{}]".format(os.getpid(),datetime.now(), flag)," ".join(map(str, arg)), file=sys.stderr)
+    print("[{}] [{}] [{}]".format(os.getpid(), datetime.now(), flag), " ".join(map(str, arg)), file=sys.stderr)
     return
 
 
@@ -80,9 +80,64 @@ def read_passwd(username: str = "remotedbuser", root_folder: str = ".") -> str:
 
 
 def get_dbcfg(fname):
-    with open(fname,"rb") as fp:
-        dbcfg=json.load(fp)
+    with open(fname, "rb") as fp:
+        dbcfg = json.load(fp)
     return dbcfg
+
+
+def register_ids(themap, cfg_root="cfg"):
+    dbcfg = get_dbcfg(os.path.join(cfg_root, "pnuid.cfg"))
+
+    engine = get_engine(verbose=False, **dbcfg)
+
+    with engine.connect() as con:
+        for k, v in themap.items():
+            d = pd.read_sql("select ids__uid from themap where ids__uid='{}'".format(k), con)
+            if d.empty:
+                con.execute("insert into themap values ('{}','{}');".format(k, v))
+                pidprint(k, "inserted.", flag="report")
+            else:
+                pidprint(k, "already found.", flag="report")
+
+from functools import partial
+import hashlib
+
+def read_salt(fname: str) -> str:
+    """Read hash function salt from file."""
+    with open(fname, "r", encoding="utf8") as f:
+        out = f.read().strip()
+    return out
+
+
+def gethash(s: str, salt="") -> str:
+    """Use the function returned by `patdb_tbox.pn.format_pn.init_hash_fun` instead."""
+    if isinstance(s, str):
+        out = hashlib.sha256((salt+s).encode("utf8")).hexdigest()
+    else:
+        out = hashlib.sha256((salt+str(s)).encode("utf8")).hexdigest()
+    return out
+
+
+def init_hash_fun(fname_salt="/opt/psql/pn_salt.txt") -> partial:
+    """Returns the PN callable hash_function."""
+    salt_str = read_salt(fname_salt)
+    hash_fun = partial(gethash, salt=salt_str)
+    return hash_fun
+
+def prep_token(s):
+    f = init_hash_fun()
+    thehash = f(s)
+    return thehash
+
+
+def search_id(token, cfg_root="cfg"):
+    dbcfg = get_dbcfg(os.path.join(cfg_root, "pnuid.cfg"))
+    engine = get_engine(verbose=False, **dbcfg)
+    with engine.connect() as con:
+        d = pd.read_sql("select * from themap where ids__uid='{}'".format(token), con)
+
+    return d
+
 
 def read_query_file(fname: str) -> str:
     """
@@ -93,7 +148,7 @@ def read_query_file(fname: str) -> str:
         query_str = fp.read().decode("utf8")
     return query_str
 
-def get_engine(username: str = "remotedbuser", root_folder: str = ".", nodename: str = "client", schema=None,dbname:str="remotedb", verbose=False):
+def get_engine(username: str = "remotedbuser", root_folder: str = ".", nodename: str = "client", schema=None, dbname:str="remotedb", verbose=False):
     """
     Get a database `sqlalchemy.engine` object for the user `username`, using ssl certificates specific for 'nodenames' type machines.
     For details about the database engine object see `sqlalchemy.create_engine`

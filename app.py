@@ -6,12 +6,12 @@ from dash import Dash, dcc, html, Input, Output, State, callback
 from dash import dash_table as dt
 from dash_extensions import Download
 from dash_extensions.snippets import send_data_frame
-from bin.utils import get_engine, get_dbcfg, gdate, all_data_tables, get_colnames,ref_cols,run_select_queries
+from bin.utils import get_engine, get_dbcfg, gdate, all_data_tables, get_colnames,ref_cols,run_select_queries, search_id, prep_token
 import pandas as pd
 from dash.exceptions import PreventUpdate
 from datetime import datetime
 import socket
-
+import time
 
 def pat_data_q(tbl_name, ids__uid, col="*"):
     return "select {} from {} where ids__uid=\'{}\'".format(col, tbl_name, ids__uid)
@@ -207,7 +207,6 @@ moreless = {"More": "Less", "Less": "More"}
     Input(component_id="moreless-button", component_property="n_clicks"),
     Input(component_id='refresh-button', component_property='n_clicks'),
     Input(component_id="moreless-button", component_property="children")
-
 )
 def showhide_db_details(n_clicks, refresh_click, button_status):
     if n_clicks is None:
@@ -291,42 +290,76 @@ the_cases = {k: ",\n".join([col if (k == "overview") or (col in ref_cols) else t
                            for col in all_cols[k]]) for k in all_data_tables}
 
 import re
-re_is_patid=re.compile("^[a-zA-Z0-9]*$")
+re_is_patid = re.compile("^[a-zA-Z0-9]*$")
+re_is_pn = re.compile("^[0-9]+-?[0-9]+$")
+
+def is_patid(s):
+    return (len(str(s)) == 64) and (re_is_patid.fullmatch(str(s)))
+
+def is_pn(s):
+    return (len(str(s)) == 13) and (re_is_pn.fullmatch(str(s)))
 
 @app.callback(
     Output("patientid-disp", "children"),
+    Output("patientid-convert-disp", "children"),
     Output("latest-update-patsearch", "children"),
     Input("patsearch-button", "n_clicks"),
+    Input("patconvert-button", "n_clicks"),
     Input("input-patid", "value"),
 )
-def cb_render(n_clicks, patid):
-    if n_clicks is None:
+def cb_render(n_clicks, n_click_cv, patid):
+    if (n_clicks is None) and (n_click_cv is None):
         raise PreventUpdate
     else:
-        start_ = datetime.now()
+        ctx = dash.callback_context
 
-        if (len(str(patid)) == 64) and (re_is_patid.fullmatch(str(patid))):
-            with engine.connect() as con:
-                id_in_db = pd.read_sql("select * from view__uid_all where ids__uid = '{}'".format(patid), con)
-
-            if id_in_db.shape[0] == 0:
-                out = [html.P("patid not found in DB: {}".format(patid))]
-            else:
-                create_views_queries = {
-                    k: "create or replace view patview_{}_{} as (select * from {} where ids__uid='{}');".format(k, patid, k, patid) for k
-                    in all_data_tables}
-
-                engine.execute("\n".join([v for v in create_views_queries.values()]))
-
-                select_queries = {k: "select {} from patview_{}_{}".format(the_cases[k], k, patid) for k in all_data_tables}
-
-                data_lvl1 = run_select_queries(select_queries, engine)
-                out = [gentbl(data_lvl1["overview"])]
-
+        if not ctx.triggered:
+            button_id = 'No clicks yet'
         else:
-            out = [html.P("not a patid: {}".format(patid))]
+            button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+        if button_id == "input-patid":
+            raise PreventUpdate
 
-        return out, get_update_status(start_)
+        start_ = datetime.now()
+        #print(str(patid), is_pn(str(patid)))
+
+        if is_patid(patid):
+            if (button_id == "patsearch-button"):
+                with engine.connect() as con:
+                    id_in_db = pd.read_sql("select * from view__uid_all where ids__uid = '{}'".format(patid), con)
+
+                if id_in_db.shape[0] == 0:
+                    out = [html.P("ids__uid not found in DB: {}".format(patid)),None]
+
+                else:
+                    create_views_queries = {
+                        k: "create or replace view patview_{}_{} as (select * from {} where ids__uid='{}');".format(k, patid, k, patid) for k
+                        in all_data_tables}
+
+                    engine.execute("\n".join([v for v in create_views_queries.values()]))
+
+                    select_queries = {k: "select {} from patview_{}_{}".format(the_cases[k], k, patid) for k in all_data_tables}
+
+                    data_lvl1 = run_select_queries(select_queries, engine)
+                    out = [gentbl(data_lvl1["overview"]), None]
+
+            elif button_id == "patconvert-button":
+                time.sleep(1)
+                answer = search_id(str(patid))
+                out = [None, gentbl_raw(answer, id="convert-res-tbl", style_table={"width": "450px"})]
+
+        elif is_pn(str(patid)):
+
+            if button_id == "patconvert-button":
+                time.sleep(1)
+                answer = search_id(prep_token(str(patid)))
+                out = [None, gentbl_raw(answer, id="convert-res-tbl", style_table={"width": "450px"})]
+            else:
+                out = [html.P("PN not found in DB: {}".format(patid)), None]
+        else:
+            out = [html.P("Unknown input: {}".format(patid)), None]
+
+        return out+[get_update_status(start_)]
 
 
 @app.callback(
@@ -399,9 +432,11 @@ app.layout = html.Div([
     html.Div([
         dcc.Input(id="input-patid", placeholder="Write Patient ID"),
         html.Button('Search', id='patsearch-button'),
-        get_latest_update(id="latest-update-patsearch"),
-        html.Div(id="patientid-disp")
-    ]),
+        html.Button('Convert', id='patconvert-button'),
+        html.P(id="patientid-convert-disp"),
+    ],className="row"),
+    get_latest_update(id="latest-update-patsearch"),
+        html.Div(id="patientid-disp"),
     separator
 ])
 

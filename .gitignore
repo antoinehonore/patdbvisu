@@ -1,5 +1,6 @@
 *.log
 cfg/db.cfg
+cfg/pnuid.cfg
 pyenv/
 .idea/
 data/

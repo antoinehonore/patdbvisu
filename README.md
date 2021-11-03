@@ -24,11 +24,14 @@
     - [ ] Nice Display of demographics tables
 - Patient display
   - [x] Patid search function
-    - [x] Prevent SQL injection w strict casting (len==64) and ^[0-9a-zA-Z]*$
+    - [x] Prevent SQL injection w strict casting (could use a long drop down list instead ?)
+      - [x] for `ids__uid` (len==64) and ^[0-9a-zA-Z]*$
+      - [x] for `pn` (len==13) and ^[0-9]?-[0-9]?$
     - [x] Input error display
     - [x] Return the overview row with only non-null columns
   - [ ] Port the patid convert function
     - [ ] **(partially done)** Load the patid/PN database in postgresql
+    - [ ] Automatic db update upon new `ids__uid` encounter when loading `monitor_meta`
     - [x] Display the PN results
   - [ ] Patients intervals viewer
     - [ ] Selection of the data to plot
@@ -91,6 +94,7 @@ Watches established.
 ```bash
 touch dbfiles/*.csv
 ```
+
 
 # Administration
 ## New category

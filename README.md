@@ -54,6 +54,7 @@ Watches established.
 
 
 ## Plan
+### Bulk load
 - [x] data_monitor_past_pat**/LF__*.csv
 - [x] data_monitor_past_pat**/HF__*.csv
 - [x] data_monitor_offset_queries_pat**/LF__*.csv
@@ -70,9 +71,9 @@ Watches established.
 - [x] data_monitor_NEO_1901_pat{1..1000}/HF__*.csv
 - [ ] **(errors)** data_monitor_NEO_1901_pat{1000..2000}/LF__*.csv
 - [ ] **(errors)** data_monitor_NEO_1901_pat{1000..2000}/HF__*.csv
-- [ ] **(on going)** data_monitor_NEO_191SG-1_pat{1..1000}/LF__*.csv
-- [ ] **(on going)** data_monitor_NEO_191SG-1_pat{1..1000}/HF__*.csv
-- [ ] **(on going)** data_monitor_NEO_191SG-1_pat{1000..2000}/LF__*.csv
+- [x] data_monitor_NEO_191SG-1_pat{1..1000}/LF__*.csv
+- [x] data_monitor_NEO_191SG-1_pat{1..1000}/HF__*.csv
+- [x] data_monitor_NEO_191SG-1_pat{1000..2000}/LF__*.csv
 - [ ] **(on going)** data_monitor_NEO_191SG-1_pat{1000..2000}/HF__*.csv
 - [ ] data_monitor_2021__NEO_1901_pat{1..1000}/LF__*.csv
 - [ ] data_monitor_2021__NEO_1901_pat{1..1000}/HF__*.csv
@@ -82,6 +83,14 @@ Watches established.
 - [ ] data_monitor_2021__NEO_191SG-1_pat{1..1000}/HF__*.csv
 - [ ] data_monitor_2021__NEO_191SG-1_pat{1000..2000}/LF__*.csv
 - [ ] data_monitor_2021__NEO_191SG-1_pat{1000..2000}/HF__*.csv
+
+
+## Fixing errors
+1. From the start, some empty monitor data cells got the value "eJzjAgAACwAL" instead of NULL which fools the notnull filters used to find empty cells.
+2. Database access got interrupted which caused many upload failures.
+```bash
+touch dbfiles/*.csv
+```
 
 # Administration
 ## New category

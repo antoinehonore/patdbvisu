@@ -22,7 +22,7 @@
     - [x] Front end for populations choices (drop down lists) x N
     - [x] Download button (doesn t work in the Nextcloud embedded version)
     - [ ] Nice Display of demographics tables
-- Patient display
+- [ ] Patient display
   - [x] Patid search function
     - [x] Prevent SQL injection w strict casting (could use a long drop down list instead ?)
       - [x] for `ids__uid` (len==64) and ^[0-9a-zA-Z]*$

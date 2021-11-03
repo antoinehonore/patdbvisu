@@ -10,17 +10,19 @@
       - [x] More/less button to hide/show the display
       - [x] Figure with number of patient vs time
       - [x] Bar chart of the length of stay
+      - [ ] Figure with number of patients in each ward over time
   - [x] Data source overlap (Based on coinciding `ids__interval`)
     - [x] Views
     - [x] Dropdown list for source selection
     - [x] Table display of the number of overlapping patid/and intervals
+
 - [x] Population study
   - [x] Choice of categories
     - [x] Views
     - [x] Front end
   - [ ] Several categories comparison
     - [x] Front end for populations choices (drop down lists) x N
-    - [x] Download button (doesn t work in the Nextcloud embedded version)
+    - [x] Download button (doesn't work in the Nextcloud embedded version)
     - [ ] Nice Display of demographics tables
 - [ ] Patient display
   - [x] Patid search function
@@ -46,14 +48,12 @@
 $ ./upload.sh dbfiles
 ```
 
-- Start the watches on the directory  the changes in directory. Wait for the message: `Watches established.`
+- Start the watches on the directory the changes are to occur in the steps below in directory. Wait for the message: `Watches established.`
 ```bash
 $ ./notif.sh "<folders to monitor>"  5 prep
 [...]
 Watches established.
 ```
-
-- `touch` the files in the list below sequentially. Make sure that the watches are started on the folder containing the files.
 
 
 ## Plan
@@ -92,6 +92,7 @@ Watches established.
 1. From the start, some empty monitor data cells got the value "eJzjAgAACwAL" instead of NULL which fools the notnull filters used to find empty cells.
 2. Database access got interrupted which caused many upload failures.
 ```bash
+
 touch dbfiles/data_monitor_**/*.csv
 ```
 
@@ -109,6 +110,9 @@ make -C ../patdb_bin/scripts -f update.mk data_folders_stem=<new_folder> mode=LF
 [...]
 make -C ../patdb_bin/scripts -f update.mk data_folders_stem=<new_folder> mode=HF
 ```
+In case a patient received new file since the last parsing, the `Rust` code parses all the data once again in parallel.
+Thus in minimal RAM resources, the calls to `make` should be run sequentially (especially when processing HF data).
+
 
 #### Watches
 - In a tmux subpanel: Watch the `dbfiles` folder 
@@ -121,6 +125,11 @@ make -C ../patdb_bin/scripts -f update.mk data_folders_stem=<new_folder> mode=HF
 ./notif.sh data/monitor_meta <n_jobs> prep
 ```
 
+- In a tmux subpanel: Watch the `data/monitor/monitor_parsed/<new_folder>_pat**` files 
+```bash
+./notif.sh `data/monitor/monitor_parsed/<new_folder>_pat**` <n_jobs> prep
+```
+
 ### Insert metadata 
 
 - Compute the metadata file
@@ -130,16 +139,11 @@ ls data/monitor_meta/<new_folder>_meta_details.xlsx
 ```
 
 - The `prep` watch should be triggered and a file in `dbfiles` created.
-- The `upload` watch should be triggered after the previous step.
+- The `upload` watch should be triggered and the data available in table `monitor_meta`
 
 
 ### Insert data 
-- In a tmux subpanel: Watch the `data/monitor/<`new_folder`>_pat**` files 
-```bash
-./notif.sh `data/monitor/<new_folder>_pat**` <n_jobs> prep
-```
-
-- Make sure the a watch in the `dbfiles` is active.
+- Make sure the watch in the `dbfiles` is active.
 
 - If the folder contains lots of patients (> 1000), touch the files bulk by bulk:
 ```bash
@@ -174,7 +178,5 @@ See `bin/views.py`
 - Add a key/value pair in dictionary `d`. The key should the name you want for your category. 
 The value should be a regexp to apply to the column names of the takecare table.
 - 
-
-
 
 

@@ -23,10 +23,9 @@ def define_col_db_size_query(k, con):
     return ", ".join(list(map(lambda s: "pg_column_size(" + s + ") as " + s, get_colnames(k, con))))
 
 
-def get_size_interval(ids__interval, engine):
-    with engine.connect() as con:
-        dout = {k: pd.read_sql(query_size.format(define_col_db_size_query(k, con), k, ids__interval), con).sum(1) for k in all_data_tables2}
-        dout = {k: int(v.values[0]) for k, v in dout.items() if not v.empty}
+def get_size_interval(ids__interval, con):
+    dout = {k: pd.read_sql(query_size.format(define_col_db_size_query(k, con), k, ids__interval), con).sum(1) for k in all_data_tables2}
+    dout = {k: int(v.values[0]) for k, v in dout.items() if not v.empty}
     return dout
 
 

@@ -10,7 +10,7 @@
       - [x] More/less button to hide/show the display
       - [x] Figure with number of patient vs time
       - [x] Bar chart of the length of stay
-      - [ ] Figure with number of patients in each ward over time
+      - [x] Figure with number of patients in each ward over time
   - [x] Data source overlap (Based on coinciding `ids__interval`)
     - [x] Views
     - [x] Dropdown list for source selection
@@ -23,6 +23,7 @@
   - [ ] Several categories comparison
     - [x] Front end for populations choices (drop down lists) x N
     - [x] Download button (doesn't work in the Nextcloud embedded version)
+    - [ ] Negation of the categories
     - [ ] Nice Display of demographics tables
 - [ ] Patient display
   - [x] Patid search function
@@ -38,6 +39,7 @@
   - [ ] Patients intervals viewer
     - [ ] Selection of the data to plot
     - [ ] Display of the data
+
 
 
 #  Data Upload

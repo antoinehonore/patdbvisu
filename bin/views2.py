@@ -1,7 +1,8 @@
 import argparse
-from utils import get_engine, get_dbcfg, read_query_file, clin_tables,all_data_tables,run_select_queries
+from utils import get_engine, get_dbcfg, read_query_file, clin_tables, all_data_tables, run_select_queries, get_size_interval, pidprint
 import pandas as pd
 import sys
+from utils import get_colnames
 
 dbcfg = get_dbcfg("cfg/db.cfg")
 
@@ -42,14 +43,21 @@ def join_str(*args):
 def format_desc(dd, dtype=np.float64, digits=3, short=False):
     return join_str(get_med_str(dd.astype(dtype), digits=digits), get_q_str(dd.astype(dtype), short=short, digits=digits))
 
-from utils import get_colnames
-
 all_data_tables.pop(0)
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
+    thepatid = "c656cb9d57076c8b57614e4141dd90f4d36580c0ae47aeda86098def5701d7dc"
+    l = []
+    with engine.connect() as con:
+        df = pd.read_sql("select ids__uid, ids__interval from monitorhf where ids__uid='{}'".format(thepatid), con)
+        for i, s in enumerate(df["ids__interval"].values):
+            l.append(get_size_interval(s, con))
+            pidprint(i, l[-1])
 
-    transpose_q=\
+    print("")
+    transpose_q = \
     "  SELECT 'SELECT * FROM   crosstab(       $ct$SELECT u.attnum, t.rn, u.val         FROM  (SELECT row_number() OVER () AS rn, * FROM ' || attrelid::regclass || ') t "\
       "       , unnest(ARRAY[' || string_agg(quote_ident(attname) "\
      "                         || '::text', ',') || ']) "\
@@ -67,12 +75,6 @@ if __name__ == "__main__":
 
 
 
-with engine.connect() as con:
-    df = pd.read_sql(transpose_q, con)
-
-out = engine.execute(df["sql"].iloc[0])
-
-
 def get_colnames(k,con):
     df=pd.read_sql("select column_name   FROM information_schema.columns "\
                    " WHERE table_schema = \'public\'    AND table_name   = \'{}\' ".format(k),
@@ -80,6 +82,7 @@ def get_colnames(k,con):
     return list(map(lambda s: "\""+s+"\"", df["column_name"].values.tolist()))
 with engine.connect() as con:
     all_cols={k:get_colnames(k, con) for k in all_data_tables}
+
 ref_cols = ["\""+s+"\"" for s in ['ids__uid', 'ids__interval', 'interval__raw', 'interval__start', 'interval__end']]
 
 thecase = "case when ({} notnull) then True else NULL end as {}"

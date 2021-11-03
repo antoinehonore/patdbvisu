@@ -7,7 +7,7 @@
   - [x] Number of patients over time
     - [x] Views
     - [x] Display 
-      -[x] More/less button to hide/show the display
+      - [x] More/less button to hide/show the display
       - [x] Figure with number of patient vs time
       - [x] Bar chart of the length of stay
   - [x] Data source overlap (Based on coinciding `ids__interval`)

@@ -77,7 +77,7 @@ Watches established.
 - [x] data_monitor_NEO_191SG-1_pat{1..1000}/LF__*.csv
 - [x] data_monitor_NEO_191SG-1_pat{1..1000}/HF__*.csv
 - [x] data_monitor_NEO_191SG-1_pat{1000..2000}/LF__*.csv
-- [ ] **(on going)** data_monitor_NEO_191SG-1_pat{1000..2000}/HF__*.csv
+- [x] data_monitor_NEO_191SG-1_pat{1000..2000}/HF__*.csv
 - [ ] data_monitor_2021__NEO_1901_pat{1..1000}/LF__*.csv
 - [ ] data_monitor_2021__NEO_1901_pat{1..1000}/HF__*.csv
 - [ ] data_monitor_2021__NEO_1901_pat{1000..2000}/LF__*.csv
@@ -92,11 +92,66 @@ Watches established.
 1. From the start, some empty monitor data cells got the value "eJzjAgAACwAL" instead of NULL which fools the notnull filters used to find empty cells.
 2. Database access got interrupted which caused many upload failures.
 ```bash
-touch dbfiles/*.csv
+touch dbfiles/data_monitor_**/*.csv
 ```
 
 
 # Administration
+
+## Update monitor data
+Assuming that monitoring data is to be added from a folder `new_folder`
+
+### Prerequisites
+#### Run the first parsing step
+- Compute the summary files and the first parsed version for the data in `new_folder`
+```bash
+make -C ../patdb_bin/scripts -f update.mk data_folders_stem=<new_folder> mode=LF
+[...]
+make -C ../patdb_bin/scripts -f update.mk data_folders_stem=<new_folder> mode=HF
+```
+
+#### Watches
+- In a tmux subpanel: Watch the `dbfiles` folder 
+```bash
+./upload.sh dbfiles 
+```
+
+- In a tmux subpanel: Watch the `data/monitor_meta` folder 
+```bash
+./notif.sh data/monitor_meta <n_jobs> prep
+```
+
+### Insert metadata 
+
+- Compute the metadata file
+```bash
+make -C ../patdb_sync/scripts -f update.mk <new_folder>_list
+ls data/monitor_meta/<new_folder>_meta_details.xlsx 
+```
+
+- The `prep` watch should be triggered and a file in `dbfiles` created.
+- The `upload` watch should be triggered after the previous step.
+
+
+### Insert data 
+- In a tmux subpanel: Watch the `data/monitor/<`new_folder`>_pat**` files 
+```bash
+./notif.sh `data/monitor/<new_folder>_pat**` <n_jobs> prep
+```
+
+- Make sure the a watch in the `dbfiles` is active.
+
+- If the folder contains lots of patients (> 1000), touch the files bulk by bulk:
+```bash
+touch data/monitor_parsed/<new_folder>_pat{1..1000}/LF__*.csv
+touch data/monitor_parsed/<new_folder>_pat{1..1000}/HF__*.csv
+touch data/monitor_parsed/<new_folder>_pat{1000..2000}/LF__*.csv
+touch data/monitor_parsed/<new_folder>_pat{1000..2000}/HF__*.csv
+...
+```
+This should trigger the `prep.py` script first and then the `upload.py`.  
+
+
 ## New category
 See `queries/set_view.sql` and `queries/drop_view.sql`
 

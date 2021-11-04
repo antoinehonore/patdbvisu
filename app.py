@@ -156,7 +156,7 @@ def fig_pat_unitname_overtime(engine):
     dplot[dcols] = dplot[dcols].cumsum(0)
 
     fig = px.scatter(dplot, y=dcols, template="none")
-    fig.update_layout(font={"size": 30}, showlegend=True)
+    fig.update_layout(font={"size": 30}, showlegend=True, legend_title="Ward")
     fig.update_yaxes(title="Patient Count", automargin=True)
     fig.update_xaxes(title="", automargin=True)
 

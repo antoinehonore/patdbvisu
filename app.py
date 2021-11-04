@@ -91,7 +91,6 @@ style_tbl = dict(
 )
 
 engine = get_engine(verbose=False, **dbcfg)
-#server = flask.Flask(__name__)
 
 app = dash.Dash(
     __name__,
@@ -183,8 +182,9 @@ def create_completion_dropdown():
 
 
 cname = None
-# thestyle = {'padding': 10, 'flex': 1}
+
 thestyle = {"margin": "auto"}
+
 navbar = html.Div(children=[
     html.Div([
         html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
@@ -227,7 +227,10 @@ def update_completion_data(n_clicks, dropdown):
         with engine.connect() as con:
             intersection_data = pd.read_sql(query_s, con)
 
-    return gentbl_raw(intersection_data, id="completion-count-tbl", style_table={"width": "450px"})
+    return gentbl_raw(intersection_data,
+                      id="completion-count-tbl",
+                      style_table={"width": "450px"}
+                      )
 
 
 moreless = {"More": "Less", "Less": "More"}
@@ -244,7 +247,6 @@ def showhide_db_details(n_clicks, refresh_click, button_status):
     if n_clicks is None:
         raise PreventUpdate
     else:
-        #start_ = datetime.now()
         ctx = dash.callback_context
 
         if not ctx.triggered:
@@ -439,7 +441,7 @@ def plot_patient_interv(val, opts, patid, n_clicks):
         button_id = 'No clicks yet'
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
+    print(button_id)
     out = []
     if button_id == "patientid-disp-plot-button":
         if len(val) > 0:
@@ -462,7 +464,7 @@ def plot_patient_interv(val, opts, patid, n_clicks):
             data_lvl1 = {k: v[[c for c in v.columns if not (c in ["ids__uid", "ids__interval", "interval__raw"])]] for
                          k, v in data_lvl1.items()}
 
-            df = pd.concat([v.set_index(["interval__start", "interval__end"]) for v in data_lvl1.values()], axis=1)
+            df = pd.concat([v.set_index(["interval__start", "interval__end"]) for v in data_lvl1.values() if all([s in v.columns for s in ["interval__start", "interval__end"]])], axis=1)
 
             out = [html.Div(
                 [html.P(k), gentbl_raw(v, id="tbl_{}".format(k), style_table={'overflowX': 'auto'}), html.Br()]) for

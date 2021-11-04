@@ -1,6 +1,7 @@
 import socket
 import time
 from datetime import datetime
+import flask
 
 import dash
 import pandas as pd
@@ -90,12 +91,14 @@ style_tbl = dict(
 )
 
 engine = get_engine(verbose=False, **dbcfg)
+#server = flask.Flask(__name__)
 
 app = dash.Dash(
     __name__,
     external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"]
 )
 app.title = "Oh My DB !"
+server = app.server
 
 # nav_bar_style = {"background-repeat": "no-repeat",
 #                 "background-position": "right top",

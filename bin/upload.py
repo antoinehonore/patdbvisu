@@ -3,7 +3,7 @@ import pandas as pd
 
 from parse import parse
 import os
-from utils import gdate, date_fmt, get_engine,pidprint, get_dbcfg
+from patdbvisu.src.utils import gdate, date_fmt, get_engine, pidprint, get_dbcfg
 
 
 

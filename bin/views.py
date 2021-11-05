@@ -1,5 +1,5 @@
 import argparse
-from utils import get_engine, get_dbcfg, read_query_file
+from patdbvisu.src.utils import get_engine, get_dbcfg, read_query_file
 import pandas as pd
 import sys
 

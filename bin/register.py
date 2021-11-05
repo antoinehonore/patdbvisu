@@ -1,7 +1,7 @@
 import argparse
 import os
 import subprocess
-from utils import gdate, date_fmt, get_engine, pidprint, get_dbcfg,register_ids
+from patdbvisu.src.utils import register_ids
 
 def decrypt_file(fname):
     cmd = "gpg -d --passphrase-file=/opt/psql/gpg_antoine_pfile.txt --yes --batch {} 2>/dev/null".format(fname)

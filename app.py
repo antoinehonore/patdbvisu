@@ -94,7 +94,7 @@ engine = get_engine(verbose=False, **dbcfg)
 
 app = dash.Dash(
     __name__,
-    external_stylesheets=["https://codepen.io/chriddyp/pen/bWLwgP.css"]
+    external_stylesheets=["css/thestyle.css"]
 )
 app.title = "Oh My DB !"
 server = app.server

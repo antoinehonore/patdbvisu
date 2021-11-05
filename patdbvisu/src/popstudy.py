@@ -113,7 +113,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
 
         thequery = "select ids__uid from view__uid_has where {}".format(pos_cond + " and " + neg_cond)
 
-        print(thequery)
+        #print(thequery)
         with engine.connect() as con:
             dout = pd.read_sql(thequery, con).values.reshape(-1)
             doverview = pd.read_sql("select * from overview where ids__uid in ({});".format(
@@ -153,7 +153,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
                        )
 
     ddisp = pd.read_csv(StringIO(mytable.to_csv()))
-    print(ddisp)
+    #print(ddisp)
 
     #.columns = list(map(str,list(range(ddisp.shape[1]))))
     ddisp.fillna("", inplace=True)

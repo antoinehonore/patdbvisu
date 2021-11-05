@@ -20,6 +20,8 @@ test:
 	@echo  $(interm_fname)
 	@echo $(fname)
 
+run:
+	gunicorn -b 127.0.0.1:8050 app:server
 
 upload: $(interm_fname).flag
 	@echo ""

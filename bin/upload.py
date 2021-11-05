@@ -126,7 +126,7 @@ def fmt_sqldtype(x):
     else:
         out = str(x)
 
-    if not any([s == out for s in ["eJzjAgAACwAL", "-", "nan", ".", "NULL", "None", "NaT"]]):
+    if not any([s == out for s in ["-", "nan", ".", "NULL", "None", "NaT"]]):
         return "\'{}\'".format(out)
     else:
         return "NULL"
@@ -195,7 +195,7 @@ if __name__ == "__main__":
             thekeys = get_primary_keys(tbl_name, engine)
 
             # Read data
-            df = read_csv(fname, thetypes)
+            df = read_csv(fname, thetypes).applymap(lambda x: x.replace("eJzjAgAACwAL", "NULL") if isinstance(x, str) else x)
 
             # Find duplicated indexes
             duplicated = df[thekeys[0]][df[thekeys[0]].duplicated()]

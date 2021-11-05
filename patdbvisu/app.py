@@ -40,14 +40,16 @@ main_layout=html.Div([
     separator,
     html.H2("Population study", style={'text-align': 'left'}),
     html.Div([
-        html.Button('More', id='morechecklist-button'),
-        html.Button('Less', id='lesschecklist-button'),
-        html.Button('Update', id='updatechecklists-button'),
-        html.Div([html.Button("Download xlsx", id="downloadchecklists-button"), Download(id="downloadchecklists")])
+        html.Button('More', id='popstudy-morechecklist-button'),
+        html.Button('Less', id='popstudy-lesschecklist-button'),
+        html.Button('Update', id='popstudy-updatechecklists-button'),
+        html.Div([html.Button("Download raw", id="popstudy-downloadchecklists-button"),
+                  Download(id="popstudy-downloadchecklists")]
+                 )
     ], style={'display': 'flex', 'flex-direction': 'row'}),
     html.Div([
-        html.Div(id="div-checklists", children=[]),
-        html.Div(id="div-checklists-results", children=[])
+        html.Div(id="popstudy-checklists-div", children=[]),
+        html.Div(id="popstudy-checklists-results-div", children=[])
     ]),
     separator,
     html.H2("Patient Display", style={'text-align': 'left'}),

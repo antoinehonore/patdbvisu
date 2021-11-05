@@ -118,7 +118,15 @@ def update_checklist_test(n_clicks, checklists, dl_click):
             dout = pd.read_sql(thequery, con).values.reshape(-1)
             doverview = pd.read_sql("select * from overview where ids__uid in ({});".format(
                 "\'" + "\',\'".join(dout.tolist()) + "\'"), con)
-            doverview["group"] = "_".join(v["props"]["value"]) + "_and_not_" + "_".join(v_not["props"]["value"])
+        pos = "_".join(v["props"]["value"])
+        neg = "not_" + "_".join(v_not["props"]["value"])
+
+        f=[pos,neg]
+        f=[ff for ff in f if (ff!="") and (ff != "not_")]
+
+        doverview["group"] = "Population-{} ".format(i+1) + "_and_".join(f)
+        if doverview.empty:
+            return [html.P("Population {} is empty...".format(i+1)), None]
 
         DF.append(doverview)
 
@@ -131,9 +139,10 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     nonnormal = None #['bw']
     categorical = ["sex"]
     labels = {'death': 'mortality'}
-    dout[groupby]=dout[groupby].applymap(lambda x: x.replace("_"," ") if isinstance(x,str) else x)
+    dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_"," ") if isinstance(x,str) else x)
 
-    #print(dout)
+    # print(dout)
+
     mytable = TableOne(dout.reset_index()[columns],
                        columns=columns,
                        categorical=categorical,
@@ -142,6 +151,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
                        rename=labels,
                        pval=True
                        )
+
     ddisp = pd.read_csv(StringIO(mytable.to_csv()))
     print(ddisp)
 

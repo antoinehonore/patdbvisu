@@ -76,10 +76,9 @@ main_layout=html.Div([
     separator,
     html.Div([html.Br()] * 10)
 ])
+app.layout = main_layout
 
 if __name__ == "__main__":
-    app.layout = main_layout
-
     if socket.gethostname() == "cmm0576":
         app.run_server(debug=True)
     else:

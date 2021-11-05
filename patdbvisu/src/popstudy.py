@@ -6,6 +6,7 @@ import dash
 from dash import dcc, Input, Output, html
 from dash.exceptions import PreventUpdate
 
+from io import StringIO
 n_field_per_pop = 3
 
 
@@ -94,7 +95,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     if (button_id != "popstudy-updatechecklists-button") and (button_id != "popstudy-downloadchecklists-button"):
         raise PreventUpdate
-    print("button pressed ",button_id)
+    print("button pressed ", button_id)
 
     DF = []
     assert(len(checklists) % n_field_per_pop == 0)
@@ -113,7 +114,6 @@ def update_checklist_test(n_clicks, checklists, dl_click):
 
         thequery = "select ids__uid from view__uid_has where {}".format(pos_cond + " and " + neg_cond)
 
-        #print(thequery)
         with engine.connect() as con:
             dout = pd.read_sql(thequery, con).values.reshape(-1)
             doverview = pd.read_sql("select * from overview where ids__uid in ({});".format(
@@ -121,8 +121,9 @@ def update_checklist_test(n_clicks, checklists, dl_click):
         pos = "_".join(v["props"]["value"])
         neg = "not_" + "_".join(v_not["props"]["value"])
 
-        f=[pos,neg]
-        f=[ff for ff in f if (ff!="") and (ff != "not_")]
+
+        f = [pos, neg]
+        f = [ff for ff in f if (ff!="") and (ff != "not_")]
 
         doverview["group"] = "Population-{} ".format(i+1) + "_and_".join(f)
         if doverview.empty:
@@ -139,30 +140,24 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     nonnormal = None #['bw']
     categorical = ["sex"]
     labels = {'death': 'mortality'}
-    dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_"," ") if isinstance(x,str) else x)
-
-    # print(dout)
-
-    mytable = TableOne(dout.reset_index()[columns],
-                       columns=columns,
-                       categorical=categorical,
-                       groupby=groupby,
-                       nonnormal=nonnormal,
-                       rename=labels,
-                       pval=True
-                       )
-
-    ddisp = pd.read_csv(StringIO(mytable.to_csv()))
-    #print(ddisp)
-
-    #.columns = list(map(str,list(range(ddisp.shape[1]))))
-    ddisp.fillna("", inplace=True)
-    #ddisp.columns = [s if not ("Unnamed" in s) else "" for s in ddisp.columns]
-    #ddisp=ddisp.applymap(lambda s:s.replace("_", " "))
+    dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_", " ") if isinstance(x, str) else x)
 
     if button_id == "popstudy-downloadchecklists-button":
         return "Download", dcc.send_data_frame(dout.to_excel, filename="PopulationsOverview.xlsx")
     else:
+        mytable = TableOne(dout.reset_index()[columns],
+                           columns=columns,
+                           categorical=categorical,
+                           groupby=groupby,
+                           nonnormal=nonnormal,
+                           rename=labels,
+                           pval=True
+                           )
+
+        ddisp = pd.read_csv(StringIO(mytable.to_csv()))
+
+        ddisp.fillna("", inplace=True)
+
         return [gentbl_raw(ddisp, id="popstudy-output",
                            style_cell={'border': '1px solid grey', 'textAlign': 'center','minWidth':"20px",'maxWidth':"100px"},
                            style_header={'display': 'none'},
@@ -173,5 +168,3 @@ def update_checklist_test(n_clicks, checklists, dl_click):
                            }, fill_width=False
                            )
                 ], None
-
-from io import StringIO

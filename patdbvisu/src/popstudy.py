@@ -113,7 +113,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
             neg_cond = " and ".join([vv + "=0" for vv in v_not["props"]["value"]])
 
         thequery = "select ids__uid from view__uid_has where {}".format(pos_cond + " and " + neg_cond)
-
+        print(thequery)
         with engine.connect() as con:
             dout = pd.read_sql(thequery, con).values.reshape(-1)
             doverview = pd.read_sql("select * from overview where ids__uid in ({});".format(
@@ -130,21 +130,28 @@ def update_checklist_test(n_clicks, checklists, dl_click):
             return [html.P("Population {} is empty...".format(i+1)), None]
 
         DF.append(doverview)
-
     if all([dd.empty for dd in DF]):
         raise PreventUpdate
+    print("finished",DF)
 
     dout = pd.concat(DF, axis=0)
-    columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "group"]
-    groupby = ['group']
-    nonnormal = None #['bw']
-    categorical = ["sex"]
-    labels = {'death': 'mortality'}
-    dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_", " ") if isinstance(x, str) else x)
+
+    fname_stem = "___".join(dout["group"].unique().reshape(-1).tolist())
+    print(fname_stem)
 
     if button_id == "popstudy-downloadchecklists-button":
-        return "Download", dcc.send_data_frame(dout.to_excel, filename="PopulationsOverview.xlsx")
+        return "Download", dcc.send_data_frame(dout.to_excel, filename="{}_demographics.xlsx".format(fname_stem))
     else:
+        if len(DF)==1:
+            return [html.P("Need at least 2 populations, click on 'more' to add one"), None]
+
+        columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "group"]
+        groupby = ['group']
+        nonnormal = None  # ['bw']
+        categorical = ["sex"]
+        labels = {'death': 'mortality'}
+        dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_", " ") if isinstance(x, str) else x)
+
         mytable = TableOne(dout.reset_index()[columns],
                            columns=columns,
                            categorical=categorical,

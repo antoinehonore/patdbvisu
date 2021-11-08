@@ -132,7 +132,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
         DF.append(doverview)
     if all([dd.empty for dd in DF]):
         raise PreventUpdate
-    print("finished",DF)
+    print("finished", DF)
 
     dout = pd.concat(DF, axis=0)
 
@@ -142,7 +142,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     if button_id == "popstudy-downloadchecklists-button":
         return "Download", dcc.send_data_frame(dout.to_excel, filename="{}_demographics.xlsx".format(fname_stem))
     else:
-        if len(DF)==1:
+        if len(DF) == 1:
             return [html.P("Need at least 2 populations, click on 'more' to add one"), None]
 
         columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "group"]

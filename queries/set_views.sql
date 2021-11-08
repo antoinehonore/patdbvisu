@@ -33,9 +33,9 @@ create view view__length_of_stay as (
 
 
 create view view__monitorlf_has_btb as (
-select ids__uid ,ids__interval
-from monitorlf ddwl
-where ddwl."lf__147840__147850__147850__btbhf__btbhf__spm" notnull or ddwl."lf__none__147850__none__btbhf__none__spm" notnull
+    select ids__uid ,ids__interval
+    from monitorlf ddwl
+    where ddwl."lf__147840__147850__147850__btbhf__btbhf__spm" notnull or ddwl."lf__none__147850__none__btbhf__none__spm" notnull
 );
 
 create view view__monitorlf_uid_has_btb as
@@ -44,17 +44,13 @@ create view view__monitorlf_uid_has_btb as
 	from view__monitorlf_has_btb
 );
 
-
-
-
-
-
 create view view__monitorlf_has_rf as (
-select ids__uid, ids__interval
-from monitorlf ddwl
-where
-ddwl."lf__151562__151562__151562__rf__rf__rpm" notnull or ddwl."lf__none__151562__none__rf__none__rpm" notnull
-					or ddwl."lf__151562__151562__151562__rf__rf__ok-nd" notnull or ddwl."lf__none__151562__none__rf__none__okand" notnull
+    select ids__uid, ids__interval
+    from monitorlf ddwl
+    where   ddwl."lf__151562__151562__151562__rf__rf__rpm" notnull or
+            ddwl."lf__none__151562__none__rf__none__rpm" notnull or
+            ddwl."lf__151562__151562__151562__rf__rf__ok-nd" notnull or
+            ddwl."lf__none__151562__none__rf__none__okand" notnull
 );
 
 create view view__monitorlf_uid_has_rf as
@@ -62,10 +58,6 @@ create view view__monitorlf_uid_has_rf as
 	select distinct ids__uid
 	from view__monitorlf_has_rf
 );
-
-
-
-
 
 create view view__monitorlf_has_spo2 as (
 select ids__uid ,ids__interval
@@ -102,6 +94,23 @@ create view view__monitorlf_uid_has_arts as
 	from view__monitorlf_has_arts
 );
 
+
+create view view__monitorlf_has_allsignals as (
+    select * from view__monitorlf_has_spo2
+    intersect
+    select * from view__monitorlf_has_rf
+    intersect
+    select * from view__monitorlf_has_btb
+);
+
+create view view__monitorlf_uid_has_allsignals as (
+    select distinct ids__uid
+    from view__monitorlf_has_allsignals
+);
+
+create view view__overview_uid_neo as (
+    select distinct ids__uid from overview where projid like '%%neo%%'
+);
 
 create view view__overview_uid_has as
 (
@@ -160,6 +169,7 @@ create view view__has as
 		case when (via.ids__interval in (select v.ids__interval from view__monitorlf_has_rf v)) then 1 else 0 end as "rf",
 		case when (via.ids__interval in (select v.ids__interval from view__monitorlf_has_spo2 v)) then 1 else 0 end as "spo2",
         case when (via.ids__interval in (select v.ids__interval from view__monitorlf_has_arts v)) then 1 else 0 end as "arts",
+        case when (via.ids__interval in (select v.ids__interval from view__monitorlf_has_allsignals v)) then 1 else 0 end as "allsignals",
 		case when (via.ids__interval in (select v.ids__interval from view__vikt_has v)) then 1 else 0 end as "vikt",
         $REGISTERED_TK_EVENTS$
 	from view__interv_all via
@@ -173,9 +183,12 @@ create view view__uid_has as
 		case when (vua.ids__uid in (select v.ids__uid from view__monitorlf_uid_has_rf v)) then 1 else 0 end as "rf",
 		case when (vua.ids__uid in (select v.ids__uid from view__monitorlf_uid_has_spo2 v)) then 1 else 0 end as "spo2",
         case when (vua.ids__uid in (select v.ids__uid from view__monitorlf_uid_has_arts v)) then 1 else 0 end as "arts",
+        case when (vua.ids__uid in (select v.ids__uid from view__monitorlf_uid_has_allsignals v)) then 1 else 0 end as "allsignals",
 		case when (vua.ids__uid in (select v.ids__uid from view__vikt_uid_has v)) then 1 else 0 end as "vikt",
 		case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_has v)) then 1 else 0 end as "overview",
 		case when (vua.ids__uid in (select v.ids__uid from view__takecare_uid_has v)) then 1 else 0 end as "takecare",
+        case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_neo v)) then 1 else 0 end as "neo",
+
         $REGISTERED_UID_TK_EVENTS$
 	from view__uid_all vua
 );
@@ -306,7 +319,7 @@ create view view__timeline_n_patients as (
 	on mhf.interval__start = mlf.interval__start) as b
 	on b.interval__start = a.interval__start
 	order by interval__start
-)
+);
 
 
 
@@ -314,11 +327,11 @@ create view view__monitorlf_unitname as (
 	select distinct min(interval__start) interval__start , replace(string_agg(distinct unitname,'__'),'__unknown','') unitname from monitorlf m
 	group by ids__uid
 	order by interval__start
-)
+);
 
 
 create view view__monitorhf_unitname as (
 	select distinct min(interval__start) interval__start , replace(string_agg(distinct unitname,'__'),'__unknown','') unitname from monitorhf m
 	group by ids__uid
 	order by interval__start
-)
+);

@@ -105,19 +105,15 @@ def read_passwd(username: str = "remotedbuser", root_folder: str = ".") -> str:
 
 
 
-def register_ids(themap, cfg_root="cfg"):
-    dbcfg = get_dbcfg(os.path.join(cfg_root, "pnuid.cfg"))
+def register_ids(themap, con):
 
-    engine = get_engine(verbose=False, **dbcfg)
-
-    with engine.connect() as con:
-        for k, v in themap.items():
-            d = pd.read_sql("select ids__uid from themap where ids__uid='{}'".format(k), con)
-            if d.empty:
-                con.execute("insert into themap values ('{}','{}');".format(k, v))
-                pidprint(k, "inserted.", flag="report")
-            else:
-                pidprint(k, "already found.", flag="report")
+    for k, v in themap.items():
+        d = pd.read_sql("select ids__uid from themap where ids__uid='{}'".format(k), con)
+        if d.empty:
+            con.execute("insert into themap values ('{}','{}');".format(k, v))
+            pidprint(k, "inserted.", flag="report")
+        else:
+            pidprint(k, "already found.", flag="report")
 
 def read_query_file(fname: str) -> str:
     """

@@ -41,6 +41,58 @@ def init_hash_fun(fname_salt="/opt/psql/pn_salt.txt") -> partial:
     hash_fun = partial(gethash, salt=salt_str)
     return hash_fun
 
+thisyear = str(datetime.now().year)
+
+def format_pn(x) -> str:
+    """
+    Format personal numbers.
+
+    All temporary numbers are formatted: 99yyyy-xxxxxx
+    All the standard numbers are formatted: yyyymmdd-xxxx
+
+    If the input does not match  re.compile("^[0-9]+-?[0-9]+$") (i.e. is only made of numbers potentially separated with a '-')
+    then the output is returned.
+
+
+    """
+    # Can only remove the ambiguity if people are less than 100 years old
+    if is_pn(x) is None: # is it made of digits and potentially a '-'
+        return x
+
+    if x[:2] == '99':
+        if '-' in x:
+            s = x.split("-")
+            if len(s[0]) == 6 and len(s[1]) == 6: #99yyyy-xxxxxx
+                return x
+
+            if len(s[0]) == 10 and len(s[1]) == 4: #99yyyymmdd-xxxx (faulty input)
+                return x[2:]
+
+        else:  #99yyyyxxxxxx
+            return x[:6] + '-' + x[6:]
+    else:
+        if '-' in x:
+            s = x.split("-")
+            if len(s[0]) == 6 and len(s[1]) == 4:
+                if int(s[0][:2]) <= int(thisyear[2:]):  #yymmdd-xxxx (supposely born with a year starting with 20. (i.e. we can t format PN of people born before 1921)
+                    return '20' + x
+                elif int(s[0][:2]) > int(thisyear[2:]):
+                    return '19' + x
+            if len(s[0]) == 4 and len(s[1]) == 6 and int(s[0]) <= int(thisyear):  #yyyy-xxxxxx
+                return '99' + x
+            if len(s[0]) == 8 and len(s[1]) == 4 and int(s[0]) <= int(thisyear):  #yyyymmdd-xxxx
+                return x
+        else:
+            if len(x) == 12 and int(x[:4]) <= int(thisyear): #yyyymmddxxxx
+                return x[:8] + '-' + x[8:]
+
+            if len(x) == 10:
+                if int(x[:2]) <= int(thisyear[2:]): #yymmddxxxx with yy <= 21
+                    return '20' + x[:6] + '-' + x[6:]
+                elif int(x[:2]) > int(thisyear[2:]): #yymmddxxxx with yy >21
+                    return '19' + x[:6] + '-' + x[6:]
+    return x
+
 
 re_is_patid = re.compile("^[a-zA-Z0-9]*$")
 re_is_pn = re.compile("^[0-9]+-?[0-9]+$")
@@ -85,18 +137,17 @@ def cb_render(n_clicks, n_click_cv, patid):
         ctx = dash.callback_context
 
         if not ctx.triggered:
-            button_id = 'No clicks yet'
+            raise PreventUpdate
         else:
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-
-        if button_id == "input-patid":
+        #print(button_id)
+        if button_id == "patdisp-input-patid":
             raise PreventUpdate
 
         start_ = datetime.now()
-        out = [html.P("Unknown input: {}".format(patid)), [], []]
-
+        out = [html.P("Wrong input format (neither a valid PN nor a valid ids__uid): {}".format(patid)), [], []]
         if is_patid(patid):
-            if button_id == "patsearch-button":
+            if button_id == "patdisp-search-button":
                 with engine.connect() as con:
                     id_in_db = pd.read_sql("select * from view__uid_all where ids__uid = '{}'".format(patid), con)
 
@@ -136,17 +187,17 @@ def cb_render(n_clicks, n_click_cv, patid):
                     value = []
                     out = [None, options, value]
 
-            elif button_id == "patconvert-button":
+            elif button_id == "patdisp-convert-button":
                 time.sleep(1)
                 answer = search_id(str(patid))
-                out = [gentbl_raw(answer, id="convert-res-tbl", style_table={"width": "450px"}), [], []]
+                out = [gentbl_raw(answer, id="patdisp-convert-res-tbl", style_table={"width": "450px"}), [], []]
 
         elif is_pn(str(patid)):
 
-            if button_id == "patconvert-button":
+            if button_id == "patdisp-convert-button":
                 time.sleep(1)
                 answer = search_id(prep_token(str(patid)))
-                out = [gentbl_raw(answer, id="convert-res-tbl", style_table={"width": "450px"}), [], []]
+                out = [gentbl_raw(answer, id="patdisp-convert-res-tbl", style_table={"width": "450px"}), [], []]
             else:
                 out = [html.P("PN not found in DB: {}".format(patid)), [], []]
 

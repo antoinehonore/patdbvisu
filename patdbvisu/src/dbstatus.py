@@ -93,11 +93,16 @@ def fig_pat_length_of_stay(engine):
 
 def fig_pat_unitname_overtime(engine):
     with engine.connect() as con:
-        df = pd.read_sql("select * from view__monitorlf_unitname;", con)
-    df["unitname"] = df["unitname"].apply(lambda s: s.split("__")[0])
-    tmp = pd.get_dummies(df["unitname"])
-    good_cols = [c for c in tmp.columns if not ("__" in c)]
-    dplot = pd.concat([df, tmp[good_cols]], axis=1).drop(columns=["unitname"])
+        df_hf = pd.read_sql("select * from view__monitorhf_unitname;", con)
+    with engine.connect() as con:
+        df_lf = pd.read_sql("select * from view__monitorlf_unitname;", con)
+    df = df_lf
+    #df["unitname"] = df["unitname"].apply(lambda s: s.split("__")[0])
+    tmphf = pd.get_dummies(df["unitname"])
+    print(tmphf.columns)
+    good_cols = [c for c in tmphf.columns if not ("__" in c)]
+
+    dplot = pd.concat([df, tmphf[good_cols]], axis=1).drop(columns=["unitname"])
     dplot = dplot.groupby("interval__start").sum(0)
     dcols = [c for c in dplot.columns if c != "interval__start"]
     dplot[dcols] = dplot[dcols].cumsum(0)

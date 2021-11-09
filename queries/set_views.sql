@@ -321,17 +321,14 @@ create view view__timeline_n_patients as (
 	order by interval__start
 );
 
-
-
 create view view__monitorlf_unitname as (
-	select distinct min(interval__start) interval__start , replace(string_agg(distinct unitname,'__'),'__unknown','') unitname from monitorlf m
-	group by ids__uid
-	order by interval__start
+    select unitname, min(interval__start) as interval__start from monitorlf m
+    group by (ids__uid,unitname)
+    order by interval__start
 );
 
-
 create view view__monitorhf_unitname as (
-	select distinct min(interval__start) interval__start , replace(string_agg(distinct unitname,'__'),'__unknown','') unitname from monitorhf m
-	group by ids__uid
-	order by interval__start
+    select unitname, min(interval__start) as interval__start from monitorhf m
+    group by (ids__uid,unitname)
+    order by interval__start
 );

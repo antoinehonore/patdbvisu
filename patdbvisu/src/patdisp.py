@@ -56,7 +56,7 @@ def format_pn(x) -> str:
 
     """
     # Can only remove the ambiguity if people are less than 100 years old
-    if is_pn(x) is None: # is it made of digits and potentially a '-'
+    if re_is_pn.fullmatch(x) is None: # is it not made of digits and potentially a '-'
         return x
 
     if x[:2] == '99':
@@ -103,7 +103,7 @@ def is_patid(s):
 
 
 def is_pn(s):
-    return (len(str(s)) == 13) and (re_is_pn.fullmatch(str(s)))
+    return (len(str(s)) == 13) and (not (re_is_pn.fullmatch(str(s))is None))
 
 def prep_token(s):
     f = init_hash_fun()
@@ -169,7 +169,7 @@ def cb_render(n_clicks, n_click_cv, patid):
                                       all_data_tables}
 
                     data_lvl1 = run_select_queries(select_queries, engine)
-
+                    print(data_lvl1)
                     data_lvl1_l = [html.P("{} {}".format(k, str(v.shape))) for k, v in data_lvl1.items() if
                                    k != "overview"]
 
@@ -228,7 +228,7 @@ def plot_patient_interv(val, opts, patid, n_clicks):
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     print(button_id)
     out = []
-    if button_id == "patientid-disp-plot-button":
+    if button_id == "patdisp-plot-button":
         if len(val) > 0:
             if "all" in val:
                 interv_l = [v["value"] for v in opts[1:]]

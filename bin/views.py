@@ -1,5 +1,5 @@
 import argparse
-from patdbvisu.src.utils import get_engine, get_dbcfg, read_query_file
+from src.utils import get_engine, get_dbcfg, read_query_file
 import pandas as pd
 import sys
 
@@ -18,13 +18,14 @@ d = {"los": "^tkevt__los/.*/culture__sam.*$",
      "sro": "^tkevt__(sepsis__ruled__out|sro)/.*/culture__sam.*$",
      "infection": "^tkevt__(.*infection|pneumonia)/.*/culture__sam.*$",
      "pneumonia": "^tkevt__pneumonia/.*/culture__sam.*$",
-     "cns_infection": "^tkevt__cns__infection/.*/culture__sam.*$",
+     "cns_infection": "^tkevt__cns__infection/[^ruled__out].*/culture__s.*$",
      "abdominal_nec": "^tkevt__abdominal/nec/.*$",
      "brain_ivh_stage_3_4": "^tkevt__brain/ivh/diagnosis__stage__(3|4)$",
      "lung_bleeding": "^tkevt__crsystem/lung__bleeding/acute$",
      "no_event": "^tkevt__no__event/no__notes/no__notes$",
      "death": "^tkevt__death/death/death$"}
 
+d["sepsis"] = "({}|{}|{})".format(d["los"], d["eos"], d["cns"])
 
 s3 = "drop view if exists view__tkgrp_{};"
 s4 = "drop view if exists view__tkgrp_uid_{};"

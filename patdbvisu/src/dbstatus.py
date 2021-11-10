@@ -47,7 +47,7 @@ def update_completion_data(n_clicks, dropdown):
         query_s = " intersect ".join(
             ["select * from view__{}_has".format(k) for k in dropdown]) + "\n order by ids__uid"
         query_s = "select count(distinct ids__uid) as \"Number of patients\"," \
-                  "count(distinct ids__interval) as \"Number of intervals\" from (\n" + \
+                  "count(distinct ids__interval)::decimal/2 as \"Number of days\" from (\n" + \
                   query_s + "\n) as foo;"
 
         with engine.connect() as con:

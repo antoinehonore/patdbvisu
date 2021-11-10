@@ -132,9 +132,9 @@ def update_checklist_test(n_clicks, checklists, dl_click):
             # ids__uid should show up twice, remove the second occurence
             cols = doverview.columns
             icols = list(range(len(cols)))
-            i = np.argwhere(np.array(cols) == "ids__uid").reshape(-1)[-1]
+            second_uid = np.argwhere(np.array(cols) == "ids__uid").reshape(-1)[-1]
 
-            icols.pop(i)
+            icols.pop(second_uid)
             doverview = doverview.iloc[:, icols]
 
         if doverview.empty:
@@ -143,12 +143,13 @@ def update_checklist_test(n_clicks, checklists, dl_click):
         DF.append(doverview)
     if all([dd.empty for dd in DF]):
         raise PreventUpdate
-    print("finished", DF)
+
+    # print("finished", DF)
 
     dout = pd.concat(DF, axis=0)
 
     fname_stem = "___".join(dout["group"].unique().reshape(-1).tolist())
-    print(fname_stem)
+    # print(fname_stem)
 
     if button_id == "popstudy-downloadchecklists-button":
         return "Download", dcc.send_data_frame(dout.to_excel, filename="{}_demographics.xlsx".format(fname_stem))

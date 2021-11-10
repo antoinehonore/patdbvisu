@@ -126,7 +126,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
                             "where {} "\
                             "and vua.ids__uid=ov.ids__uid;".format(grp_name, pos_cond + " and " + neg_cond)
 
-            print(the_data_query)
+            #print(the_data_query)
             doverview = pd.read_sql(the_data_query, con)
 
             # ids__uid should show up twice, remove the second occurence

@@ -11,7 +11,6 @@ s2 = "select 'select distinct ids__uid from takecare where '||string_agg('\"'||c
     "from (SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name   = 'takecare'" \
     "and column_name ~ '{}') as f;"
 
-
 d = {"los": "^tkevt__los/.*/culture__sam.*$",
      "eos": "^tkevt__eos/.*/culture__sam.*$",
      "cns": "^tkevt__cnsepsis/(5|6|7|8|9|10|11|12|13).*/culture__sam.*$",
@@ -26,6 +25,17 @@ d = {"los": "^tkevt__los/.*/culture__sam.*$",
      "death": "^tkevt__death/death/death$"}
 
 d["sepsis"] = "({}|{}|{})".format(d["los"], d["eos"], d["cns"])
+
+d["neo_adverse"] = "(" + "|".join([d["sepsis"], d["abdominal_nec"], d["brain_ivh_stage_3_4"],
+                                   d["lung_bleeding"], d["pneumonia"], d["cns_infection"]
+                                   ]) + ")"
+
+d["bleeding"] = "(" + "|".join([d["brain_ivh_stage_3_4"], d["lung_bleeding"]
+                                ]) + ")"
+
+d["infection"] = "(" + "|".join([d["sepsis"], d["cns_infection"],
+                                 d["pneumonia"], d["abdominal_nec"]
+                                 ]) + ")"
 
 s3 = "drop view if exists view__tkgrp_{};"
 s4 = "drop view if exists view__tkgrp_uid_{};"

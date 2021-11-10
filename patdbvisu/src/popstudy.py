@@ -68,6 +68,7 @@ def update_check_lists(clickless, clickmore, checklist):
 from tableone import TableOne
 import pandas as pd
 from dash import dash_table as dt
+import numpy as np
 
 """
 Pollard TJ, Johnson AEW, Raffa JD, Mark RG (2018). tableone: An open source
@@ -106,26 +107,36 @@ def update_checklist_test(n_clicks, checklists, dl_click):
 
         pos_cond = "True"
         if len(v["props"]["value"]) > 0:
-            pos_cond= " and ".join([vv + "=1" for vv in v["props"]["value"]])
+            pos_cond = " and ".join(["vua."+vv + "=1" for vv in v["props"]["value"]])
 
         neg_cond = "True"
         if len(v_not["props"]["value"]) > 0:
-            neg_cond = " and ".join([vv + "=0" for vv in v_not["props"]["value"]])
+            neg_cond = " and ".join(["vua."+vv + "=0" for vv in v_not["props"]["value"]])
 
-        thequery = "select ids__uid from view__uid_has where {}".format(pos_cond + " and " + neg_cond)
-        print(thequery)
-        with engine.connect() as con:
-            dout = pd.read_sql(thequery, con).values.reshape(-1)
-            doverview = pd.read_sql("select * from overview where ids__uid in ({});".format(
-                "\'" + "\',\'".join(dout.tolist()) + "\'"), con)
         pos = "_".join(v["props"]["value"])
         neg = "not_" + "_".join(v_not["props"]["value"])
 
-
         f = [pos, neg]
-        f = [ff for ff in f if (ff!="") and (ff != "not_")]
+        f = [ff for ff in f if (ff != "") and (ff != "not_")]
+        grp_name = "Population-{} ".format(i + 1) + "_and_".join(f)
 
-        doverview["group"] = "Population-{} ".format(i+1) + "_and_".join(f)
+        with engine.connect() as con:
+            the_data_query = "select ov.*,vua.*, '{}' as \"group\" "\
+                            "from overview ov, view__uid_has vua "\
+                            "where {} "\
+                            "and vua.ids__uid=ov.ids__uid;".format(grp_name, pos_cond + " and " + neg_cond)
+
+            print(the_data_query)
+            doverview = pd.read_sql(the_data_query, con)
+
+            # ids__uid should show up twice, remove the second occurence
+            cols = doverview.columns
+            icols = list(range(len(cols)))
+            i = np.argwhere(np.array(cols) == "ids__uid").reshape(-1)[-1]
+
+            icols.pop(i)
+            doverview = doverview.iloc[:, icols]
+
         if doverview.empty:
             return [html.P("Population {} is empty...".format(i+1)), None]
 

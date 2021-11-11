@@ -14,7 +14,7 @@ separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", 
 navbar = html.Div(children=[
     html.Div([
         html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-        dcc.Markdown('[Documentation](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/home#user-information) - [Submit an issue](https://gitlab.com/antoinehonore/patdbvisu/-/issues)', style={'text-align': 'center'}),
+        dcc.Markdown('[Documentation](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/documentation#user-information) - [Submit an issue](https://gitlab.com/antoinehonore/patdbvisu/-/issues)', style={'text-align': 'center'}),
     ]),
     separator,
     html.H2("Database status", style={'text-align': 'left'}),
@@ -51,7 +51,7 @@ main_layout=html.Div([
                   Download(id="popstudy-downloadchecklists")]
                  )
     ], style={'display': 'flex', 'flex-direction': 'row'}),
-    dcc.Markdown("[Definition of the categories](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/home#definition-of-categories)"),
+    dcc.Markdown("[Definition of the categories](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/documentation#definition-of-categories)"),
     html.Div([
         html.Div(id="popstudy-checklists-div", children=[]),
         html.Div(id="popstudy-checklists-results-div", children=[])

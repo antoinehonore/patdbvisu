@@ -1,23 +1,23 @@
 create view view__interv_all as (
-	select ids__uid,ids__interval from monitorhf
+	select ids__uid,ids__interval,interval__start,interval__end from monitorhf
 	union
-	select ids__uid,ids__interval from monitorlf
+	select ids__uid,ids__interval,interval__start,interval__end from monitorlf
 	union
-	select ids__uid,ids__interval from vikt
+	select ids__uid,ids__interval,interval__start,interval__end from vikt
 	union
-	select ids__uid,ids__interval from vatska
+	select ids__uid,ids__interval,interval__start,interval__end from vatska
 	union
-	select ids__uid,ids__interval from takecare
+	select ids__uid,ids__interval,interval__start,interval__end from takecare
 	union
-	select ids__uid,ids__interval from respirator
+	select ids__uid,ids__interval,interval__start,interval__end from respirator
 	union
-	select ids__uid,ids__interval from pressure
+	select ids__uid,ids__interval,interval__start,interval__end from pressure
 	union
-	select ids__uid,ids__interval from med
+	select ids__uid,ids__interval,interval__start,interval__end from med
 	union
-	select ids__uid,ids__interval from lab
+	select ids__uid,ids__interval,interval__start,interval__end from lab
 	union
-	select ids__uid,ids__interval from fio2
+	select ids__uid,ids__interval,interval__start,interval__end from fio2
 );
 
 create view view__uid_all as (
@@ -27,7 +27,11 @@ create view view__uid_all as (
 
 
 create view view__length_of_stay as (
-	select ids__uid, count(ids__interval)*2 as "n_days" from view__interv_all
+	select ids__uid,
+	count(ids__interval)*2 as "n_days",
+	min(interval__start) as "interval__start",
+	max(interval__end) as "interval__end"
+	from view__interv_all
 	group by ids__uid
 );
 

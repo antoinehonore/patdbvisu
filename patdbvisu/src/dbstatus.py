@@ -57,10 +57,14 @@ def update_completion_data(n_clicks, dropdown):
                       id="completion-count-tbl", style_table={"width": "450px"})
 
 
+bad_interval_exclusion = True
+bad_interval_exclusion = "interval__start<now() and interval__start> '2017-01-01'::timestamp "
+bad_interval_exclusion_w_end = bad_interval_exclusion+ "and interval__end < now() and interval__end > '2017-01-01'::timestamp "
+
 
 def fig_npat_vs_time(engine):
     with engine.connect() as con:
-        df = pd.read_sql("select * from view__timeline_n_patients;", con).set_index("interval__start")
+        df = pd.read_sql("select * from view__timeline_n_patients where {};".format(bad_interval_exclusion), con).set_index("interval__start")
 
     df.rename(columns={
         k: k.replace("total_n_patients__", "").capitalize().replace("torlf", "tor LF").replace("torhf", "tor HF")
@@ -77,7 +81,7 @@ def fig_npat_vs_time(engine):
 
 def fig_pat_length_of_stay(engine):
     with engine.connect() as con:
-        df = pd.read_sql("select n_days from view__length_of_stay where n_days <780;", con)
+        df = pd.read_sql("select n_days from view__length_of_stay where {};".format(bad_interval_exclusion_w_end), con)
 
     fig = px.histogram(df, nbins=200, template="none")
 
@@ -91,13 +95,13 @@ def fig_pat_length_of_stay(engine):
 
 def fig_pat_unitname_overtime(engine):
     with engine.connect() as con:
-        df_hf = pd.read_sql("select * from view__monitorhf_unitname;", con)
+        df_hf = pd.read_sql("select * from view__monitorhf_unitname where {};".format(bad_interval_exclusion), con)
     with engine.connect() as con:
-        df_lf = pd.read_sql("select * from view__monitorlf_unitname;", con)
+        df_lf = pd.read_sql("select * from view__monitorlf_unitname where {};".format(bad_interval_exclusion), con)
     df = df_lf
-    #df["unitname"] = df["unitname"].apply(lambda s: s.split("__")[0])
+
     tmphf = pd.get_dummies(df["unitname"])
-    print(tmphf.columns)
+    #print(tmphf.columns)
     good_cols = [c for c in tmphf.columns if not ("__" in c)]
 
     dplot = pd.concat([df, tmphf[good_cols]], axis=1).drop(columns=["unitname"])
@@ -132,7 +136,7 @@ def showhide_db_details(n_clicks, refresh_click, button_status):
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
 
         out = []
-        if (button_status == "More") or (button_id == "refresh-button" and button_status == "Less"):
+        if (button_status == "More" and button_id == "moreless-button") or (button_id == "refresh-button" and button_status == "Less"):
             fig = fig_npat_vs_time(engine)
             out = [dcc.Graph(figure=fig, style={"margin-top": "50px"})]
 

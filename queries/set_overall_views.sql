@@ -1,6 +1,4 @@
 
-
-
 create view view__has as
 (
 	select ids__uid, ids__interval,

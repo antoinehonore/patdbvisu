@@ -46,7 +46,7 @@ main_layout=html.Div([
     html.Div([
         html.Button('More', id='popstudy-morechecklist-button'),
         html.Button('Less', id='popstudy-lesschecklist-button'),
-        html.Button('Update', id='popstudy-updatechecklists-button'),
+        html.Button('Stats', id='popstudy-updatechecklists-button'),
         html.Div([html.Button("Download raw", id="popstudy-downloadchecklists-button"),
                   Download(id="popstudy-downloadchecklists")]
                  )

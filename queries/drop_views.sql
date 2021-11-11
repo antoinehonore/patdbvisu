@@ -1,7 +1,4 @@
 
-drop view if exists view__has;
-drop view if exists view__uid_has;
-
 drop view if exists view__uid_all;
 drop view if exists view__length_of_stay;
 drop view if exists view__interv_all;
@@ -24,13 +21,20 @@ drop view if exists view__monitorlf_has_arts;
 drop view if exists view__vikt_uid_has;
 drop view if exists view__vikt_has;
 
+
+drop view if exists view__overview_uid_vlbw;
+drop view if exists view__overview_uid_late_preterm;
+drop view if exists view__overview_uid_preterm;
+drop view if exists view__overview_uid_very_preterm;
+drop view if exists view__overview_uid_extremely_preterm;
+drop view if exists view__overview_uid_term;
+
+drop view if exists view__overview_uid_vlbw;
 drop view if exists view__overview_uid_neo;
 drop view if exists view__overview_uid_has;
 
 drop view if exists view__takecare_uid_has;
 drop view if exists view__takecare_has;
-
-
 
 drop view if exists view__timeline_n_patients;
 

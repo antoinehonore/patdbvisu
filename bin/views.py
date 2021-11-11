@@ -15,7 +15,6 @@ d = {"los": "^tkevt__los/.*/culture__sam.*$",
      "eos": "^tkevt__eos/.*/culture__sam.*$",
      "cns": "^tkevt__cnsepsis/(5|6|7|8|9|10|11|12|13).*/culture__sam.*$",
      "sro": "^tkevt__(sepsis__ruled__out|sro)/.*/culture__sam.*$",
-     "infection": "^tkevt__(.*infection|pneumonia)/.*/culture__sam.*$",
      "pneumonia": "^tkevt__pneumonia/.*/culture__sam.*$",
      "cns_infection": "^tkevt__cns__infection/[^ruled__out].*/culture__s.*$",
      "abdominal_nec": "^tkevt__abdominal/nec/.*$",
@@ -58,9 +57,14 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--drop", dest='drop', action='store_const',
                     const=True, default=False,
                     help='Only drop all views.')
+
 parser.add_argument("--clean", dest='clean', action='store_const',
                     const=True, default=False,
                     help='Clean the patview__')
+
+parser.add_argument("--advanced", dest='advanced', action='store_const',
+                    const=True, default=False,
+                    help='Define the project specific advance views')
 
 
 if __name__ == "__main__":
@@ -74,8 +78,14 @@ if __name__ == "__main__":
             engine.execute("\n".join(["drop view if exists {};".format(k) for k in patview_list]))
 
         if args.drop:
+            overall_drop_query = read_query_file("queries/drop_overall_views.sql")
+            advanced_drop_query = read_query_file("queries/drop_advanced_views.sql")
             main_drop_query = read_query_file("queries/drop_views.sql")
+
+            engine.execute(overall_drop_query)
+            engine.execute(advanced_drop_query)
             engine.execute(main_drop_query)
+
             for k, v in drop.items():
                 engine.execute(v)
             for k, v in drop_uid.items():
@@ -112,9 +122,16 @@ if __name__ == "__main__":
     REGISTERED_UID_TK_EVENTS = ",\n".join([
     "case when (vua.ids__uid in (select v.ids__uid from view__tkgrp_uid_{} v)) then 1 else 0 end as \"{}\"".format(k, k) for k in queries1.keys()])
 
-    main_query = read_query_file("queries/set_views.sql")
-    main_query = main_query.replace("$REGISTERED_TK_EVENTS$", REGISTERED_TK_EVENTS)
-    main_query = main_query.replace("$REGISTERED_UID_TK_EVENTS$", REGISTERED_UID_TK_EVENTS)
 
+
+    main_query = read_query_file("queries/set_views.sql")
     engine.execute(main_query)
 
+    advanced_query = read_query_file("queries/set_advanced_views.sql")
+    engine.execute(advanced_query)
+
+
+    overall_query = read_query_file("queries/set_overall_views.sql")
+    overall_query = overall_query.replace("$REGISTERED_TK_EVENTS$", REGISTERED_TK_EVENTS)
+    overall_query = overall_query.replace("$REGISTERED_UID_TK_EVENTS$", REGISTERED_UID_TK_EVENTS)
+    engine.execute(overall_query)

@@ -14,9 +14,10 @@ separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", 
 navbar = html.Div(children=[
     html.Div([
         html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-        dcc.Markdown('[Submit an issue](https://gitlab.com/antoinehonore/patdbvisu/-/issues) - [Documentation](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/home)', style={'text-align': 'center'}),
+        dcc.Markdown('[Submit an issue](https://gitlab.com/antoinehonore/patdbvisu/-/issues) - [Documentation](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/home#overview)', style={'text-align': 'center'}),
     ]),
     separator,
+    html.H2("Database status", style={'text-align': 'left'}),
     html.Div([
         html.Button('Update', id='refresh-button', style=thestyle),
         html.Div(get_latest_update("update-status", style=thestyle)),
@@ -28,7 +29,7 @@ navbar = html.Div(children=[
         html.Button('More', id='moreless-button', style=thestyle)
     ], style={'display': 'flex', 'flex-direction': 'row'}),
     html.Div([
-        html.H2("Data overlap", style={'text-align': 'left'}),
+        html.H4("Data overlap", style={'text-align': 'left'}),
         html.Div(id="div-db-completion", children=[create_completion_dropdown(),
                                                    html.P("-", id="completion-result")]),
         html.Div(id="div-db-details"),

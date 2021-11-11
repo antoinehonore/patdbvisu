@@ -54,9 +54,7 @@ def update_completion_data(n_clicks, dropdown):
             intersection_data = pd.read_sql(query_s, con)
 
     return gentbl_raw(intersection_data,
-                      id="completion-count-tbl",
-                      style_table={"width": "450px"}
-                      )
+                      id="completion-count-tbl", style_table={"width": "450px"})
 
 
 

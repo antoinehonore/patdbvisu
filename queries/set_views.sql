@@ -161,6 +161,23 @@ create view view__vikt_uid_has as
 );
 
 
+create view view__med_has_caffein as (
+    select ids__uid,ids__interval
+    from med
+    where
+    "lm_givet__peyona__inj_inf__20__mg_ml_mg" notnull or
+    "lm_givet__peyona__oralt__20__mg_ml_mg"  notnull or
+    "lm_givet__peyona__oralt__spadning__till__10__mg_ml_mg" notnull or
+    "lm_givet__peyona__spadning__till__10__mg_ml__inf_mg" notnull
+);
+
+create view view__med_uid_has_caffein as
+(
+	select distinct ids__uid
+	from view__med_has_caffein
+);
+
+
 
 create view view__has as
 (
@@ -171,6 +188,8 @@ create view view__has as
         case when (via.ids__interval in (select v.ids__interval from view__monitorlf_has_arts v)) then 1 else 0 end as "arts",
         case when (via.ids__interval in (select v.ids__interval from view__monitorlf_has_allsignals v)) then 1 else 0 end as "allsignals",
 		case when (via.ids__interval in (select v.ids__interval from view__vikt_has v)) then 1 else 0 end as "vikt",
+        case when (via.ids__interval in (select v.ids__interval from view__med_has_caffein v)) then 1 else 0 end as "caffein",
+
         $REGISTERED_TK_EVENTS$
 	from view__interv_all via
 );
@@ -188,6 +207,7 @@ create view view__uid_has as
 		case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_has v)) then 1 else 0 end as "overview",
 		case when (vua.ids__uid in (select v.ids__uid from view__takecare_uid_has v)) then 1 else 0 end as "takecare",
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_neo v)) then 1 else 0 end as "neo",
+        case when (vua.ids__uid in (select v.ids__uid from view__med_uid_has_caffein v)) then 1 else 0 end as "caffein",
 
         $REGISTERED_UID_TK_EVENTS$
 	from view__uid_all vua

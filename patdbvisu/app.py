@@ -14,7 +14,10 @@ separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", 
 navbar = html.Div(children=[
     html.Div([
         html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-    ]),
+        dcc.Markdown('[Submit an issue](https://gitlab.com/antoinehonore/patdbvisu/-/issues)', style={'text-align': 'center'}),
+        dcc.Markdown('[Documentation](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/home)', style={'text-align': 'center'}),
+    ],className='sidebar-header'),
+    separator,
     html.Div([
         html.Button('Update', id='refresh-button', style=thestyle),
         html.Div(get_latest_update("update-status", style=thestyle)),
@@ -59,7 +62,6 @@ main_layout=html.Div([
         html.Button('Convert', id='patdisp-convert-button'),
         html.P(id="patdisp-convert-disp"),
     ], className="row"),
-    get_latest_update(id="latest-update-patsearch"),
     html.Div(id="patdisp-div", children=[get_latest_update(id="patdisp-latestupdate"),
                                             html.Div([dcc.Dropdown(options=[],
                                                                    value=[],

@@ -6,8 +6,8 @@ import pandas as pd
 import dash
 from dash import dcc, Input, Output
 from dash.exceptions import PreventUpdate
-
 import plotly.express as px
+
 
 def get_db_size():
     with engine.connect() as con:
@@ -33,7 +33,9 @@ def update_output(n_clicks):
         raise PreventUpdate
     return get_update_status(start_), get_db_size(), get_db_npat()
 
+
 moreless = {"More": "Less", "Less": "More"}
+
 
 @app.callback(
     Output("completion-result", "children"),
@@ -59,7 +61,7 @@ def update_completion_data(n_clicks, dropdown):
 
 bad_interval_exclusion = True
 bad_interval_exclusion = "interval__start<now() and interval__start> '2017-01-01'::timestamp "
-bad_interval_exclusion_w_end = bad_interval_exclusion+ "and interval__end < now() and interval__end > '2017-01-01'::timestamp "
+bad_interval_exclusion_w_end = bad_interval_exclusion + "and interval__end < now() and interval__end > '2017-01-01'::timestamp "
 
 
 def fig_npat_vs_time(engine):

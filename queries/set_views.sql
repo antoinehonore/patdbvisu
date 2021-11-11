@@ -98,6 +98,18 @@ create view view__monitorlf_uid_has_arts as
 	from view__monitorlf_has_arts
 );
 
+create view view__monitorlf_has_onesignal as (
+    select * from view__monitorlf_has_spo2
+    union
+    select * from view__monitorlf_has_rf
+    union
+    select * from view__monitorlf_has_btb
+);
+
+create view view__monitorlf_uid_has_onesignal as (
+    select distinct ids__uid from view__monitorlf_has_onesignal
+);
+
 
 create view view__monitorlf_has_allsignals as (
     select * from view__monitorlf_has_spo2
@@ -246,6 +258,10 @@ create view view__clinisoft_has as (
     select ids__uid,ids__interval from fio2
 );
 
+create view view__clinisoft_uid_has as (
+    select distinct ids__uid from view__clinisoft_has
+);
+
 
 create view view__clinisoft_total_n_patients as
 (
@@ -275,6 +291,10 @@ ORDER  BY foo."interval__start"
 );
 
 
+create view view__monitorlf_uid_has as (
+select distinct ids__uid from monitorlf
+);
+
 
 create view view__monitorlf_start_end as (
 	select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"
@@ -292,9 +312,9 @@ group by interval__start) as foo
 ORDER  BY foo."interval__start"
 );
 
-
-
-
+create view view__monitorhf_uid_has as (
+    select distinct ids__uid from monitorhf
+);
 
 create view view__monitorhf_start_end as (
 	select ids__uid, min(interval__start) as "interval__start", max(interval__end) as "interval__end"

@@ -14,9 +14,8 @@ separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", 
 navbar = html.Div(children=[
     html.Div([
         html.H1("- Oh My DB ! -", style={'text-align': 'center'}),
-        dcc.Markdown('[Submit an issue](https://gitlab.com/antoinehonore/patdbvisu/-/issues)', style={'text-align': 'center'}),
-        dcc.Markdown('[Documentation](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/home)', style={'text-align': 'center'}),
-    ],className='sidebar-header'),
+        dcc.Markdown('[Submit an issue](https://gitlab.com/antoinehonore/patdbvisu/-/issues) - [Documentation](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/home)', style={'text-align': 'center'}),
+    ]),
     separator,
     html.Div([
         html.Button('Update', id='refresh-button', style=thestyle),

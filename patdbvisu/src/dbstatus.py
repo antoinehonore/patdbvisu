@@ -9,13 +9,25 @@ from dash.exceptions import PreventUpdate
 import plotly.express as px
 
 
+def get_db_size_details():
+    s = "select foo.\"Table\", pg_size_pretty(foo.thesize), \"Size\", round(100 * thesize / \"Total\", 4) "\
+        "Perc Total (%) from ( select relname as \"Table\", pg_total_relation_size(relid) as thesize, "\
+        "from pg_catalog.pg_statio_user_tables) as foo, "\
+        "(select sum(pg_total_relation_size(relid)) as \"Total\" "\
+        "from pg_catalog.pg_statio_user_tables) as foo2 "\
+        "order by thesize desc"
+    with engine.connect() as con:
+        d = pd.read_sql(s, con)
+    return d
+
+
 def get_db_size():
     with engine.connect() as con:
         d = pd.read_sql("select pg_size_pretty(pg_database_size(\'patdb\'))", con)
     return d.loc[0, "pg_size_pretty"]
 
 
-def get_db_npat():
+def get_db_npat()->str:
     with engine.connect() as con:
         d = pd.read_sql("select count(distinct ids__uid) as \"ids__uid\" from view__uid_all", con)
     return "{} patients".format(d.loc[0, "ids__uid"])

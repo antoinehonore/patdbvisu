@@ -191,7 +191,14 @@ def prep(args):
 
     elif os.path.basename(infname).startswith("overview"):
         df = df.applymap(lambda s: s if not isinstance(s, str) else s.lower())
+        if "karda" in os.path.basename(os.path.dirname(infname)):
+            if "kon" in df.columns:
+                df.rename(columns={"kon": "sex"}, inplace=True)
+            df["sex"] = df["sex"].replace({0: "f", 1: "m"})
 
+            df.drop_duplicates(subset="ids__uid", keep="first", inplace=True)
+            df.reset_index(drop=True, inplace=True)
+            df["projid"] = "covid19"
     df.replace({".": np.nan, "-": np.nan}).to_csv(outfname, sep=";", index=False)
 
 

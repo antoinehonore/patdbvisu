@@ -201,25 +201,24 @@ if __name__ == "__main__":
             duplicated = df[thekeys[0]][df[thekeys[0]].duplicated()]
 
             if nodup & (duplicated.shape[0] > 0):
-                print(gdate(), fname, "error", "duplicated IDs:\n{}".format(duplicated), file=sys.stderr)
+                pidprint(fname, "duplicated IDs:\n{}".format(duplicated), flag="error")
                 sys.exit(1)
-            else:
-                # Add a column if the existing db is missing one
-                add_columns(df, schema, tbl_name, engine)
 
-                col = ",".join(df.columns)
+            # Add a column if the existing db is missing one
+            add_columns(df, schema, tbl_name, engine)
 
+            col = ",".join(df.columns)
+            with engine.connect() as con:
                 # Iterate on the new rows to upload
                 for i in range(df.shape[0]):
                     thekeyvalue = df.loc[i, thekeys[0]]
 
                     # Download the existing data
-                    with engine.connect() as con:
-                        drow = pd.read_sql("select * from {}.{} where {} like \'%%{}%%\'".format(schema,
-                                                                                                 tbl_name,
-                                                                                                 thekeys[0],
-                                                                                                 thekeyvalue),
-                                           con)
+                    drow = pd.read_sql("select * from {}.{} where {} like \'%%{}%%\'".format(schema,
+                                                                                             tbl_name,
+                                                                                             thekeys[0],
+                                                                                             thekeyvalue),
+                                       con)
 
                     # Row2dict
                     row = {k: fmt_sqldtype(v).replace("'-99999'", "NULL") for k, v in df.iloc[i].to_dict().items()}
@@ -241,8 +240,8 @@ if __name__ == "__main__":
                                                                               map(lambda s: "\"{}\"".format(s),
                                                                                   to_update.keys()))),
                                                                           thevalues)
-                        with engine.connect() as con:
-                            con.execute(query_s.replace("%", "%%"))
+
+                        con.execute(query_s.replace("%", "%%"))
 
                         infoprint = query_s if len(query_s) < 1000 else query_s.replace(thevalues,
                                                                                         "****************<Too long>****************")
@@ -251,15 +250,15 @@ if __name__ == "__main__":
                     else:  # update
                         to_update = {k: v for k, v in row.items() if v != row_exist[k]}
                         if len(to_update) > 0:
-                            with engine.connect() as con:
-                                the_update = ",".join(["\"{}\"={}".format(k, v) for k, v in to_update.items()])
-                                query_s = "update {} set {} where {}={}".format(tbl_name,
-                                                                                the_update,
-                                                                                thekeys[0],
-                                                                                fmt_sqldtype(thekeyvalue))
-                                con.execute(query_s.replace("%","%%"))
-                                infoprint = query_s if len(query_s) < 1000 else query_s.replace(the_update, "****************<Too long>****************")
-                                pidprint(fname, "update", infoprint, flag="report")
+
+                            the_update = ",".join(["\"{}\"={}".format(k, v) for k, v in to_update.items()])
+                            query_s = "update {} set {} where {}={}".format(tbl_name,
+                                                                            the_update,
+                                                                            thekeys[0],
+                                                                            fmt_sqldtype(thekeyvalue))
+                            con.execute(query_s.replace("%","%%"))
+                            infoprint = query_s if len(query_s) < 1000 else query_s.replace(the_update, "****************<Too long>****************")
+                            pidprint(fname, "update", infoprint, flag="report")
 
         else:
             table_creation_fname = "cfg/{}.cfg".format(cfg_stem)

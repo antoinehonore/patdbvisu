@@ -31,6 +31,7 @@ create view view__uid_has as
         case when (vua.ids__uid in (select v.ids__uid from view__monitorlf_uid_has v)) then 1 else 0 end as "monitorlf",
         case when (vua.ids__uid in (select v.ids__uid from view__monitorhf_uid_has v)) then 1 else 0 end as "monitorhf",
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_neo v)) then 1 else 0 end as "neo",
+        case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_covid19 v)) then 1 else 0 end as "covid19",
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_vlbw v)) then 1 else 0 end as "vlbw",
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_preterm v)) then 1 else 0 end as "preterm",
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_term v)) then 1 else 0 end as "term",

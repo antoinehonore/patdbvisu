@@ -23,22 +23,33 @@ d = {"los": "^tkevt__los/.*/culture__sam.*$",
      "no_event": "^tkevt__no__event/no__notes/no__notes$",
      "death": "^tkevt__death/death/death$"}
 
-d["sepsis"] = "({}|{}|{})".format(d["los"], d["eos"], d["cns"])
+d["sepsis"] = "({}|{}|{})".format(d["los"],
+                                  d["eos"],
+                                  d["cns"])
 
-d["neo_adverse"] = "(" + "|".join([d["sepsis"], d["abdominal_nec"], d["brain_ivh_stage_3_4"],
-                                   d["lung_bleeding"], d["pneumonia"], d["cns_infection"]
+d["sepsis_wo_eos"] = "({}|{})".format(d["los"],
+                                      d["cns"])
+
+d["neo_adverse"] = "(" + "|".join([d["sepsis"],
+                                   d["abdominal_nec"],
+                                   d["brain_ivh_stage_3_4"],
+                                   d["lung_bleeding"],
+                                   d["pneumonia"],
+                                   d["cns_infection"]
                                    ]) + ")"
 
-d["bleeding"] = "(" + "|".join([d["brain_ivh_stage_3_4"], d["lung_bleeding"]
+d["bleeding"] = "(" + "|".join([d["brain_ivh_stage_3_4"],
+                                d["lung_bleeding"]
                                 ]) + ")"
 
-d["infection"] = "(" + "|".join([d["sepsis"], d["cns_infection"],
-                                 d["pneumonia"], d["abdominal_nec"]
+d["infection"] = "(" + "|".join([d["sepsis"],
+                                 d["cns_infection"],
+                                 d["pneumonia"],
+                                 d["abdominal_nec"]
                                  ]) + ")"
 
 s3 = "drop view if exists view__tkgrp_{};"
 s4 = "drop view if exists view__tkgrp_uid_{};"
-
 
 queries1 = {k: s1.format(v) for k, v in d.items()}
 queries2 = {k: s2.format(v) for k, v in d.items()}

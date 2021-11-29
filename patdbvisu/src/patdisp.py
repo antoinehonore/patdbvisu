@@ -19,6 +19,7 @@ import time
 from functools import partial
 import hashlib
 
+
 def read_salt(fname: str) -> str:
     """Read hash function salt from file."""
     with open(fname, "r", encoding="utf8") as f:
@@ -41,7 +42,9 @@ def init_hash_fun(fname_salt="/opt/psql/pn_salt.txt") -> partial:
     hash_fun = partial(gethash, salt=salt_str)
     return hash_fun
 
+
 thisyear = str(datetime.now().year)
+
 
 def format_pn(x) -> str:
     """
@@ -105,6 +108,7 @@ def is_patid(s):
 def is_pn(s):
     return (len(str(s)) == 13) and (not (re_is_pn.fullmatch(str(s))is None))
 
+
 def prep_token(s):
     f = init_hash_fun()
     thehash = f(s)
@@ -140,7 +144,7 @@ def cb_render(n_clicks, n_click_cv, patid):
             raise PreventUpdate
         else:
             button_id = ctx.triggered[0]['prop_id'].split('.')[0]
-        #print(button_id)
+
         if button_id == "patdisp-input-patid":
             raise PreventUpdate
 

@@ -190,14 +190,14 @@ def cb_render(n_clicks, n_click_cv, patid):
             elif button_id == "patdisp-convert-button":
                 time.sleep(1)
                 answer = search_id(str(patid))
-                out = [gentbl_raw(answer, id="patdisp-convert-res-tbl", style_table={"width": "450px"}), [], []]
+                out = ["{} | {}".format(*tuple(answer.values.tolist())), [], []]
 
         elif is_pn(str(patid)):
 
             if button_id == "patdisp-convert-button":
                 time.sleep(1)
                 answer = search_id(prep_token(str(patid)))
-                out = [gentbl_raw(answer, id="patdisp-convert-res-tbl", style_table={"width": "450px"}), [], []]
+                out = ["{} | {}".format(*tuple(answer.values.tolist())), [], []]
             else:
                 out = [html.P("PN not found in DB: {}".format(patid)), [], []]
 

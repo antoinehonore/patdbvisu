@@ -40,6 +40,10 @@ create view view__uid_has as
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_late_preterm v)) then 1 else 0 end as "late_preterm",
         case when (vua.ids__uid in (select v.ids__uid from view__med_uid_has_caffein v)) then 1 else 0 end as "caffein",
         case when (vua.ids__uid in (select v.ids__uid from view__caffein_uid_has_validloadingdose v)) then 1 else 0 end as "caffein_validloadingdose",
+        case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_u71_main v)) then 1 else 0 end as "covid_u71_main",
+        case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_u72_main v)) then 1 else 0 end as "covid_u72_main",
+        case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_either_u71_u72 v)) then 1 else 0 end as "covid_either_u71_u72",
+        case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_covid_died v)) then 1 else 0 end as "covid_died",
 
         $REGISTERED_UID_TK_EVENTS$
 	from view__uid_all vua

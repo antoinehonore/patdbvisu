@@ -131,6 +131,25 @@ create view view__overview_uid_neo as (
 create view view__overview_uid_covid19 as (
     select distinct ids__uid from overview where projid like '%%covid19%%'
 );
+
+create view view__overview_uid_u71_main as (
+    select distinct ids__uid from overview where u071_main like 'yes'
+);
+
+create view view__overview_uid_u72_main as (
+    select distinct ids__uid from overview where u072_main like 'yes'
+);
+
+create view view__overview_uid_either_u71_u72 as (
+    select * from view__overview_uid_u71_main
+    union
+    select * from view__overview_uid_u72_main
+);
+
+create view view__overview_uid_covid_died as (
+    select distinct ids__uid from overview where avlidentid notnull
+);
+
 create view view__overview_uid_vlbw as (
     select distinct ids__uid from overview where bw < 1500
 );

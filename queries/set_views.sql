@@ -128,6 +128,9 @@ create view view__overview_uid_neo as (
     select distinct ids__uid from overview where projid like '%%neo%%'
 );
 
+create view view__overview_uid_covid19 as (
+    select distinct ids__uid from overview where projid like '%%covid19%%'
+);
 create view view__overview_uid_vlbw as (
     select distinct ids__uid from overview where bw < 1500
 );

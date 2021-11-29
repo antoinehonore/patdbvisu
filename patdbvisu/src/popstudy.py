@@ -100,6 +100,9 @@ def update_checklist_test(n_clicks, checklists, dl_click):
 
     DF = []
     assert(len(checklists) % n_field_per_pop == 0)
+    if all(len(vv["props"]["value"]) == 0 for vv in checklists):
+        return [html.P("No filters selected ..."), None]
+
     print(len(checklists)//n_field_per_pop)
     for i in range(len(checklists)//n_field_per_pop):
         v = checklists[n_field_per_pop*i + 1]
@@ -157,7 +160,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
         if len(DF) == 1:
             return [html.P("Need at least 2 populations, click on 'more' to add one"), None]
 
-        columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "group"]
+        columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "demos__age", "group"]
         groupby = ['group']
         nonnormal = None  # ['bw']
         categorical = ["sex"]

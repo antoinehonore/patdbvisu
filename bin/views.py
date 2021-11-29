@@ -21,7 +21,8 @@ d = {"los": "^tkevt__los/.*/culture__sam.*$",
      "brain_ivh_stage_3_4": "^tkevt__brain/ivh/diagnosis__stage__(3|4)$",
      "lung_bleeding": "^tkevt__crsystem/lung__bleeding/acute$",
      "no_event": "^tkevt__no__event/no__notes/no__notes$",
-     "death": "^tkevt__death/death/death$"}
+     "death": "^tkevt__death/death/death$"
+     }
 
 d["sepsis"] = "({}|{}|{})".format(d["los"],
                                   d["eos"],

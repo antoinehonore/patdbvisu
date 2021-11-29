@@ -187,7 +187,8 @@ def prep(args):
                         "ids__mondata", "mondata__raw"
                         )
 
-        df = df[['monid', 'ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration', 'gap_str',"ids__mondata", "mondata__raw"]]
+        df = df[['monid', 'ids__uid', 'signame', 'bedlabel', 'clinicalunit', 'thestart', 'theend', 'duration',
+                 'gap_str', "ids__mondata", "mondata__raw"]]
 
     elif os.path.basename(infname).startswith("overview"):
         df = df.applymap(lambda s: s if not isinstance(s, str) else s.lower())

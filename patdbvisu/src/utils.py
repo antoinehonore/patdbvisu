@@ -135,6 +135,7 @@ query_size = "select {} from "\
             "(select * from {} "\
             "where ids__interval = '{}') as foo;"
 
+
 def get_update_status(start_):
     return [html.P(gdate()), html.P("({} ms)".format(round(((datetime.now() - start_).total_seconds()) * 1000, 1)))]
 
@@ -149,6 +150,15 @@ def get_size_interval(ids__interval, con):
     return dout
 
 
+def get_size_patient(ids__uid, con):
+    return None
+
+
+def get_pat_intervals(thepatid, con):
+    return pd.read_sql("select ids__interval from view__interv_all where ids__uid like '{}'".format(thepatid),
+                            con).values.reshape(-1).tolist()
+
+
 def run_select_queries(select_queries, engine):
     data = {}
     with engine.connect() as con:
@@ -157,4 +167,3 @@ def run_select_queries(select_queries, engine):
             non_empty_col = (df.notna().sum(0) != 0)
             data[k] = df[non_empty_col.index.values[non_empty_col.values].tolist()]
     return data
-

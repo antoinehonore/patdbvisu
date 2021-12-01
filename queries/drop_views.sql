@@ -35,9 +35,9 @@ drop view if exists view__overview_uid_neo;
 drop view if exists view__overview_uid_has;
 drop view if exists view__overview_uid_covid19;
 
+drop view if exists view__overview_uid_either_u71_u72;
 drop view if exists view__overview_uid_u71_main;
 drop view if exists view__overview_uid_u72_main;
-drop view if exists view__overview_uid_either_u71_u72;
 
 drop view if exists view__overview_uid_covid_died;
 

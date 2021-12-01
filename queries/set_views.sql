@@ -21,8 +21,9 @@ create view view__interv_all as (
 );
 
 create view view__uid_all as (
-    select distinct ids__uid
-    from view__interv_all
+    select distinct ids__uid from view__interv_all
+    union
+    select ids__uid from overview
 );
 
 

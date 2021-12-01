@@ -134,7 +134,7 @@ def search_id(token, cfg_root="cfg"):
     Input("patdisp-input-patid", "value")
 )
 def cb_render(n_clicks, n_click_cv, patid):
-    empty_out = [None, [], []]
+    empty_out = [[], []]
     if (n_clicks is None) and (n_click_cv is None):
         raise PreventUpdate
     else:
@@ -156,7 +156,7 @@ def cb_render(n_clicks, n_click_cv, patid):
                     id_in_db = pd.read_sql("select * from view__uid_all where ids__uid = '{}'".format(patid), con)
 
                 if id_in_db.shape[0] == 0:
-                    out = [html.P("ids__uid not found in DB: {}".format(patid))] + empty_out
+                    out = [html.P("No data found in DB for ids__uid: {}".format(patid))] + empty_out
 
                 else:
                     create_views_queries = {
@@ -180,7 +180,8 @@ def cb_render(n_clicks, n_click_cv, patid):
                     all_interv = {k: v[["ids__interval", "interval__start", "interval__end"]] for k, v in
                                   data_lvl1.items() if
                                   all([c in v.columns for c in ["ids__interval", "interval__start", "interval__end"]])}
-                    all_interv = pd.concat([v for v in all_interv.values()], axis=0)
+                    if any([v.shape[0] > 0 for v in all_interv.values()]):
+                        all_interv = pd.concat([v for v in all_interv.values()], axis=0)
 
                     all_interv = all_interv.drop_duplicates().sort_values(by="interval__start")
 
@@ -194,14 +195,15 @@ def cb_render(n_clicks, n_click_cv, patid):
             elif button_id == "patdisp-convert-button":
                 time.sleep(1)
                 answer = search_id(str(patid))
-                out = [html.P("{} | {}".format(*tuple(answer.values.tolist()))), [], []]
+                out = [html.P("{} | {}".format(*tuple(answer.values.reshape(-1).tolist()))), [], []]
 
         elif is_pn(str(patid)):
 
             if button_id == "patdisp-convert-button":
                 time.sleep(1)
                 answer = search_id(prep_token(str(patid)))
-                out = [html.P("{} | {}".format(*tuple(answer.values.tolist()))), [], []]
+
+                out = [html.P("{} | {}".format(*tuple(answer.values.reshape(-1).tolist()))), [], []]
             else:
                 out = [html.P("PN not found in DB: {}".format(patid)), [], []]
 

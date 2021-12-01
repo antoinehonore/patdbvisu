@@ -100,8 +100,8 @@ def update_checklist_test(n_clicks, checklists, dl_click):
 
     DF = []
     assert(len(checklists) % n_field_per_pop == 0)
-    if all(len(vv["props"]["value"]) == 0 for vv in checklists):
-        return [html.P("No filters selected ..."), None]
+    #if all(len(vv["props"]["value"] if "value" in ) == 0 for vv in checklists):
+    #    return [html.P("No filters selected ..."), None]
 
     print(len(checklists)//n_field_per_pop)
     for i in range(len(checklists)//n_field_per_pop):
@@ -144,6 +144,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
             return [html.P("Population {} is empty...".format(i+1)), None]
 
         DF.append(doverview)
+
     if all([dd.empty for dd in DF]):
         raise PreventUpdate
 

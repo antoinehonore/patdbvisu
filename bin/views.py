@@ -11,12 +11,13 @@ s2 = "select 'select distinct ids__uid from takecare where '||string_agg('\"'||c
     "from (SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name   = 'takecare'" \
     "and column_name ~ '{}') as f;"
 
-d = {"los": "^tkevt__los/.*/culture__sam.*$",
-     "eos": "^tkevt__eos/.*/culture__sam.*$",
-     "cns": "^tkevt__cnsepsis/(5|6|7|8|9|10|11|12|13).*/culture__sam.*$",
+d = {"cps_los": "^tkevt__los/.*/culture__sam.*$",
+     "cps_eos": "^tkevt__eos/.*/culture__sam.*$",
+     "cns_eos": "^tkevt__cnsepsis/eos.*(5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22).*/culture__sam.*$",
+     "cns_los": "^tkevt__cnsepsis/los.*(5|6|7|8|9|10|11|12|13|14|15|16|17|18|19|20|21|22).*/culture__sam.*$",
      "sro": "^tkevt__(sepsis__ruled__out|sro)/.*/culture__sam.*$",
      "pneumonia": "^tkevt__pneumonia/.*/culture__sam.*$",
-     "cns_infection": "^tkevt__cns__infection/[^ruled__out].*/culture__s.*$",
+     "cns_infection": "^tkevt__cns__inf/[^ro].*/culture__s.*$",
      "abdominal_nec": "^tkevt__abdominal/nec/.*$",
      "brain_ivh_stage_3_4": "^tkevt__brain/ivh/diagnosis__stage__(3|4)$",
      "lung_bleeding": "^tkevt__crsystem/lung__bleeding/acute$",
@@ -24,12 +25,17 @@ d = {"los": "^tkevt__los/.*/culture__sam.*$",
      "death": "^tkevt__death/death/death$"
      }
 
-d["sepsis"] = "({}|{}|{})".format(d["los"],
-                                  d["eos"],
-                                  d["cns"])
+d["los"] = "({}|{})".format(d["cns_los"], d["cps_los"])
+d["eos"] = "({}|{})".format(d["cns_eos"], d["cps_eos"])
 
-d["sepsis_wo_eos"] = "({}|{})".format(d["los"],
-                                      d["cns"])
+
+d["cns"] = "({}|{})".format(d["cns_eos"], d["cns_los"])
+
+d["sepsis"] = "("+"|".format(d["cps_los"], d["cps_eos"], d["cns_los"], d["cns_eos"]) +")"
+
+
+d["sepsis_wo_eos"] = "("+"|".format(d["cps_los"], d["cns_los"]) + ")"
+
 
 d["neo_adverse"] = "(" + "|".join([d["sepsis"],
                                    d["abdominal_nec"],

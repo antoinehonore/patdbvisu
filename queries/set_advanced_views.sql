@@ -27,10 +27,10 @@ create view view__caffein_uid_has_validloadingdose as (
                         order by (med.ids__uid,med.interval__start)
                 ) foo
                 where caffein notnull
-                and (split_part(caffein,'__',2)::timestamp - birthdate) < '2 days'::interval
+                and (split_part(caffein,'__',2)::timestamp - birthdate) < '14 days'::interval
                 order by (ids__uid,(split_part(caffein,'__',2)::timestamp - birthdate))
         ) foo2
         group by ids__uid
     ) foo3
-     where first_dose >= 2*second_dose
+     where first_dose >= 1.3*second_dose
 );

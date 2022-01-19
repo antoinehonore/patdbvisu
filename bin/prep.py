@@ -143,6 +143,8 @@ def format_tkevt_string(s):
         .replace("local__perfusion__disturbance", "loc_perf_dist")\
         .replace("vascular__system", "vasc_sys")\
         .replace("internal__non-significant", "intern_ns")\
+        .replace("diagnosis__multiple__non-significant", "diag__mult__ns")\
+        .replace("cns__infection/ruled__out__","cns__inf/ro__")
 
 def format_clindata_string(s):
     return s.strip().lower().replace(",", "")\

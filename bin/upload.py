@@ -6,7 +6,6 @@ import os
 from src.utils import gdate, date_fmt, get_engine, pidprint, get_dbcfg
 
 
-
 def get_primary_keys(tbl_name, engine, thedefault="ids__interval"):
     query_s="SELECT c.column_name, c.data_type FROM information_schema.table_constraints tc \
     JOIN information_schema.constraint_column_usage AS ccu \
@@ -132,6 +131,7 @@ def fmt_sqldtype(x):
         return "NULL"
 
 
+from datetime import datetime
 from datetime import datetime
 import sys
 

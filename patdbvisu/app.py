@@ -41,7 +41,6 @@ main_layout=html.Div([
     separator,
     navbar,
     separator,
-    #html.Div([
     html.H2("Population study", style={'text-align': 'left'}),
     html.Div([
         html.Button('More', id='popstudy-morechecklist-button'),
@@ -49,7 +48,8 @@ main_layout=html.Div([
         html.Button('Stats', id='popstudy-updatechecklists-button'),
         html.Div([html.Button("Download raw", id="popstudy-downloadchecklists-button"),
                   Download(id="popstudy-downloadchecklists")]
-                 )
+                 ),
+        html.P(id='popstudy-querytext')
     ], style={'display': 'flex', 'flex-direction': 'row'}),
     dcc.Markdown("[Definition of the categories](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/documentation#definition-of-categories)"),
     html.Div([

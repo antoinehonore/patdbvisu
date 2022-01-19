@@ -70,6 +70,8 @@ import pandas as pd
 from dash import dash_table as dt
 import numpy as np
 
+
+
 """
 Pollard TJ, Johnson AEW, Raffa JD, Mark RG (2018). tableone: An open source
     Python package for producing summary statistics for research papers.
@@ -79,6 +81,7 @@ Pollard TJ, Johnson AEW, Raffa JD, Mark RG (2018). tableone: An open source
 @app.callback(
     Output(component_id="popstudy-checklists-results-div", component_property="children"),
     Output(component_id="popstudy-downloadchecklists", component_property="data"),
+    Output(component_id="popstudy-querytext", component_property="children"),
     Input(component_id="popstudy-updatechecklists-button", component_property='n_clicks'),
     Input(component_id="popstudy-checklists-div", component_property="children"),
     Input(component_id="popstudy-downloadchecklists-button", component_property='n_clicks'),
@@ -88,7 +91,6 @@ def update_checklist_test(n_clicks, checklists, dl_click):
 
     if not ctx.triggered:
         raise PreventUpdate
-
 
     if ((n_clicks is None) and (dl_click is None)):
         raise PreventUpdate
@@ -100,10 +102,10 @@ def update_checklist_test(n_clicks, checklists, dl_click):
 
     DF = []
     assert(len(checklists) % n_field_per_pop == 0)
-    #if all(len(vv["props"]["value"] if "value" in ) == 0 for vv in checklists):
-    #    return [html.P("No filters selected ..."), None]
 
+    QUERIES = []
     print(len(checklists)//n_field_per_pop)
+
     for i in range(len(checklists)//n_field_per_pop):
         v = checklists[n_field_per_pop*i + 1]
         v_not = checklists[n_field_per_pop * i + 2]
@@ -128,8 +130,9 @@ def update_checklist_test(n_clicks, checklists, dl_click):
                             "from overview ov, view__uid_has vua "\
                             "where {} "\
                             "and vua.ids__uid=ov.ids__uid;".format(grp_name, pos_cond + " and " + neg_cond)
+            # print(the_data_query)
+            QUERIES.append(the_data_query)
 
-            #print(the_data_query)
             doverview = pd.read_sql(the_data_query, con)
 
             # ids__uid should show up twice, remove the second occurence
@@ -141,9 +144,11 @@ def update_checklist_test(n_clicks, checklists, dl_click):
             doverview = doverview.iloc[:, icols]
 
         if doverview.empty:
-            return [html.P("Population {} is empty...".format(i+1)), None]
+            return [html.P("Population {} is empty...".format(i+1)), None, None]
 
         DF.append(doverview)
+
+    full_query = "\n union \n".join(QUERIES)
 
     if all([dd.empty for dd in DF]):
         raise PreventUpdate
@@ -156,38 +161,48 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     # print(fname_stem)
 
     if button_id == "popstudy-downloadchecklists-button":
-        return "Download", dcc.send_data_frame(dout.to_excel, filename="{}_demographics.xlsx".format(fname_stem))
+        out = ([html.P("Download"), html.P("\n union \n".join(QUERIES))],
+               dcc.send_data_frame(dout.to_excel, filename="{}_demographics.xlsx".format(fname_stem)),
+               full_query)
     else:
         if len(DF) == 1:
-            return [html.P("Need at least 2 populations, click on 'more' to add one"), None]
+            out = [html.P("Need at least 2 populations, click on 'more' to add one"), None,full_query]
 
-        columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "demos__age", "group"]
-        groupby = ['group']
-        nonnormal = None  # ['bw']
-        categorical = ["sex"]
-        labels = {'death': 'mortality'}
-        dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_", " ") if isinstance(x, str) else x)
+        else:
+            columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "demos__age", "group"]
+            groupby = ['group']
+            nonnormal = None  # ['bw']
+            categorical = ["sex"]
+            labels = {'death': 'mortality'}
+            dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_", " ") if isinstance(x, str) else x)
 
-        mytable = TableOne(dout.reset_index()[columns],
-                           columns=columns,
-                           categorical=categorical,
-                           groupby=groupby,
-                           nonnormal=nonnormal,
-                           rename=labels,
-                           pval=True
-                           )
+            mytable = TableOne(dout.reset_index()[columns],
+                               columns=columns,
+                               categorical=categorical,
+                               groupby=groupby,
+                               nonnormal=nonnormal,
+                               rename=labels,
+                               pval=True
+                               )
 
-        ddisp = pd.read_csv(StringIO(mytable.to_csv()))
+            ddisp = pd.read_csv(StringIO(mytable.to_csv()))
 
-        ddisp.fillna("", inplace=True)
+            ddisp.fillna("", inplace=True)
 
-        return [gentbl_raw(ddisp, id="popstudy-output",
-                           style_cell={'border': '1px solid grey', 'textAlign': 'center','minWidth':"20px",'maxWidth':"100px"},
-                           style_header={'display': 'none'},
-                           style_data={
-                               'whiteSpace': 'normal',
-                               'width': 'auto',
-                               'height':'auto'
-                           }, fill_width=False
-                           )
-                ], None
+            out = ([gentbl_raw(ddisp,
+                                id="popstudy-output",
+                                style_cell={'border': '1px solid grey',
+                                           'textAlign': 'center',
+                                           'minWidth': "20px",
+                                           'maxWidth': "100px"},
+                                style_header={'display': 'none'},
+                                style_data={
+                                   'whiteSpace': 'normal',
+                                   'width': 'auto',
+                                   'height':'auto'
+                                }, fill_width=False
+                               )
+                    ],
+                   None,
+                   full_query)
+    return out

@@ -1,4 +1,5 @@
 *.log
+cfg
 */cfg/db.cfg
 */cfg/pnuid.cfg
 pyenv/

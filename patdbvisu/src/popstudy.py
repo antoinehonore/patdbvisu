@@ -1,5 +1,6 @@
 from startup import app, engine
 from src.utils import gentbl_raw
+from datetime import datetime
 
 import pandas as pd
 import dash
@@ -156,21 +157,21 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     # print("finished", DF)
 
     dout = pd.concat(DF, axis=0)
-
-    fname_stem = "___".join(dout["group"].unique().reshape(-1).tolist())
-
+    print(dout.memory_usage(deep=True))
+    #fname_stem = "___".join(dout["group"].unique().reshape(-1).tolist())
+    fname_stem = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     if button_id == "popstudy-downloadchecklists-button":
-        out = ([html.P("Download"), html.P("\n union \n".join(QUERIES))],
+        out = (html.P("Download"),
                dcc.send_data_frame(dout.to_excel, filename="{}_demographics.xlsx".format(fname_stem)),
                full_query)
     else:
         if len(DF) == 1:
-            out = [html.P("Need at least 2 populations, click on 'more' to add one"), None,full_query]
+            out = [html.P("Need at least 2 populations, click on 'more' to add one"), None, full_query]
 
         else:
             columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "demos__age", "group"]
             groupby = ['group']
-            nonnormal = None  # ['bw']
+            nonnormal = None
             categorical = ["sex"]
             labels = {'death': 'mortality'}
             dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_", " ") if isinstance(x, str) else x)

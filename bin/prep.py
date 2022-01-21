@@ -144,7 +144,9 @@ def format_tkevt_string(s):
         .replace("vascular__system", "vasc_sys")\
         .replace("internal__non-significant", "intern_ns")\
         .replace("diagnosis__multiple__non-significant", "diag__mult__ns")\
-        .replace("cns__infection/ruled__out__","cns__inf/ro__")
+        .replace("/ruled__out__", "/ro__")\
+        .replace("tkevt__cns__infection/", "tkevt__cns__inf")
+
 
 def format_clindata_string(s):
     return s.strip().lower().replace(",", "")\

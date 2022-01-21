@@ -31,7 +31,7 @@ d["eos"] = "({}|{})".format(d["cns_eos"], d["cps_eos"])
 
 d["cns"] = "({}|{})".format(d["cns_eos"], d["cns_los"])
 
-d["sepsis"] = "("+"|".format(d["cps_los"], d["cps_eos"], d["cns_los"], d["cns_eos"]) +")"
+d["sepsis"] = "("+"|".format(d["cps_los"], d["cps_eos"], d["cns_los"], d["cns_eos"]) + ")"
 
 
 d["sepsis_wo_eos"] = "("+"|".format(d["cps_los"], d["cns_los"]) + ")"

@@ -158,7 +158,6 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     dout = pd.concat(DF, axis=0)
 
     fname_stem = "___".join(dout["group"].unique().reshape(-1).tolist())
-    # print(fname_stem)
 
     if button_id == "popstudy-downloadchecklists-button":
         out = ([html.P("Download"), html.P("\n union \n".join(QUERIES))],

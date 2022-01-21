@@ -145,7 +145,16 @@ def format_tkevt_string(s):
         .replace("internal__non-significant", "intern_ns")\
         .replace("diagnosis__multiple__non-significant", "diag__mult__ns")\
         .replace("/ruled__out__", "/ro__")\
-        .replace("tkevt__cns__infection/", "tkevt__cns__inf/")
+        .replace("tkevt__cns__infection/", "tkevt__cns__inf/")\
+        .replace("/diagnosis", "/diag") \
+        .replace("malformation/", "malform/") \
+        .replace("coagulase-negative__staphylococci", "coag-neg__staph")\
+        .replace("muscular__or__neurological", "musc-neuro")\
+        .replace("disease__or__syndrome", "disea-syndr")\
+        .replace("peripheral__artery__catheter", "periph-art-cath")\
+        .replace("respiratory__viral__infection", "resp-viral-inf")\
+        .replace("ventilation__and__heart__compression", "vent-and-heart-comp")\
+        .replace("blood__sample__imbalance", "blod-samp-imbal")
 
 
 def format_clindata_string(s):

@@ -261,7 +261,7 @@ def cb_render(n_clicks, n_click_cv, patid):
                                       all_data_tables}
 
                     data_lvl1 = run_select_queries(select_queries, engine)
-                    print(data_lvl1)
+                    #print(data_lvl1)
                     data_lvl1_l = [html.P("{} {}".format(k, str(v.shape))) for k, v in data_lvl1.items() if
                                    k != "overview"]
 
@@ -306,11 +306,11 @@ def plot_patient(plot_button, patid):
     #ctx = dash.callback_context
     if plot_button is None:
         raise PreventUpdate
-    print(os.getcwd())
+    #print(os.getcwd())
 
     if is_patid(patid):
         fig = get_monitorlf_visual(patid, engine, cache_root="cache")
-        print(fig)
+        #print(fig)
         return [dcc.Graph(figure=fig, style={"margin-top": "50px"})]
     else:
         return None

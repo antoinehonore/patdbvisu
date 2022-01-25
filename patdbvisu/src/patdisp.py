@@ -339,7 +339,9 @@ def display_patient_interv(val, opts, patid, n_clicks):
         button_id = 'No clicks yet'
     else:
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
+
     print(button_id)
+
     out = []
     if button_id == "patdisp-display-button":
         if len(val) > 0:

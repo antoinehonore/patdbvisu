@@ -7,7 +7,7 @@ from dash_extensions import Download
 from startup import app, server
 from src.dbstatus import update_output,update_completion_data,showhide_db_details
 from src.popstudy import update_check_lists,update_checklist_test
-from src.patdisp import cb_render,plot_patient_interv
+from src.patdisp import cb_render,plot_patient, display_patient_interv
 separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
 
 
@@ -62,7 +62,9 @@ main_layout=html.Div([
         dcc.Input(id="patdisp-input-patid", placeholder="Write Patient ID", style=dict(width="450px")),
         html.Button('Search', id='patdisp-search-button'),
         html.Button('Convert', id='patdisp-convert-button'),
+        html.Button('Plot', id='patdisp-plot-button'),
         html.P(id="patdisp-convert-disp"),
+        html.Div(id="patdisp-plot-disp")
     ], className="row"),
     html.Div(id="patdisp-div", children=[get_latest_update(id="patdisp-latestupdate"),
                                             html.Div([dcc.Dropdown(options=[],
@@ -72,7 +74,7 @@ main_layout=html.Div([
                                                                    placeholder="Choose the intervals to plot",
                                                                    style=dict(width="450px")
                                                                    ),
-                                                      html.Button("Display", id="patdisp-plot-button")
+                                                      html.Button("Display", id="patdisp-display-button")
                                                       ],
                                                      style={'display': 'flex', 'flex-direction': 'row'}
                                                      ),

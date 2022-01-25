@@ -1,12 +1,15 @@
-from src.utils import all_data_tables2, run_select_queries, gentbl_raw, all_data_tables, ref_cols, get_dbcfg, get_engine,get_update_status
+from src.utils import all_data_tables2,decompress_chunk,valid_signames,better_lookin, run_select_queries, gentbl_raw, all_data_tables, ref_cols, get_dbcfg, get_engine,get_update_status,pidprint
 
 from startup import app,engine,all_cols
 
 import pandas as pd
 import dash
-from dash import html, Input, Output
+from dash import html, Input, Output, State, dcc
 from dash.exceptions import PreventUpdate
-
+import numpy as np
+import pickle as pkl
+import plotly.express as px
+import plotly.graph_objects as go
 
 #def pat_data_q(tbl_name, ids__uid, col="*"):
 #    return "select {} from {} where ids__uid=\'{}\'".format(col, tbl_name, ids__uid)
@@ -18,6 +21,91 @@ import time
 
 from functools import partial
 import hashlib
+
+
+
+# Remove empty
+def clean_sig(d):
+    return d[d != None]
+
+
+def merge_sig(dd, k, date_col="timestamp"):
+    """This aggregates the dataframes encoded in different columns of the ...__lf sql tables."""
+    all_chunks = [decompress_chunk(s).drop(columns=["local_id"],errors="ignore").rename(columns={"date":"timestamp"}) for s in dd if not (s is None)]
+    all_chunks = [c for c in all_chunks if c.shape[0] > 0]
+
+    all_chunks = [c.rename(columns={l: k for l in [ll for ll in list(c) if ll != date_col]}).set_index(date_col)
+                  for c in all_chunks]
+    if len(all_chunks) > 0:
+        out = pd.concat(all_chunks, axis=0, ignore_index=False, sort=True).sort_index()
+    else:
+        out = pd.DataFrame(index=pd.DatetimeIndex([],name="timestamp"), columns=[k])
+    return out
+
+
+def get_signals(d, signames=None, Te="1S",date_col="timestamp"):
+    """From the lf sql table, returns a dataframe with the data of similar signals aggregated and resampled."""
+    allsigs = {
+        k: merge_sig(clean_sig(d[v].dropna(axis=1, how='all')).values.reshape(-1), k,date_col=date_col).resample(Te).apply(np.nanmean) for
+        k, v in signames.items()}
+    df = pd.concat(list(allsigs.values()), axis=1, sort=True).resample(Te).apply(np.nanmean)
+    return df
+
+
+def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None):
+    s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
+
+    with engine.connect() as con:
+        the_intervals = list(map(lambda ss: "'" + ss + "'", pd.read_sql(s_uid, con).values.reshape(-1).tolist()))
+    s_interv = "select * from monitorlf where ids__interval in ({})".format(", ".join(the_intervals))
+
+    thehash_id = gethash(s_uid + s_interv)
+
+    cache_fname = os.path.join(cache_root, thehash_id + "_monitorlf.pkl")
+
+    if not os.path.isfile(cache_fname):
+        with engine.connect() as con:
+            dfmonitor = pd.read_sql(s_interv, con)
+
+        pidprint("Downloaded:...", dfmonitor.shape)
+
+        dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
+        pidprint("Mondata:", dfmon.shape)
+        pidprint("Plot...")
+
+
+        lgd = []
+        the_plot_data = []
+        if not (data2 is None):
+
+            the_plot_data += [go.Scatter(x=data2["timeline"],y=data2['dose'],name="dose")]
+            the_plot_data += [go.Scatter(x=data2["timeline"],y=data2['weight'],name="dose")]
+
+            scale = data2.set_index("timeline")[['dose', "weight"]].max().max()
+            lgd += ['dose', "weight"]
+        else:
+            scale = 1
+
+        the_plot_data += [go.Scatter(x=dfmon.index,
+                                   y=((dfmon[k] - dfmon.min().min()) / (dfmon.max().max() - dfmon.min().min()) * scale),
+                                   name=k) for k in dfmon.columns]
+
+        fig = go.Figure(the_plot_data, dict(title="monitorLF for {}".format(ids__uid)))
+
+        lgd += ["spo2", "btb", "rf"]
+        #ax.set_xticks(ax.get_xticks(), rotation=-45)
+        #better_lookin(ax)
+        #ax.legend(lgd)
+        #ax.set_title(ids__uid)
+
+        with open(cache_fname, "wb") as fp:
+            pkl.dump(fig, fp)
+
+    else:
+        with open(cache_fname, "rb") as fp:
+            fig = pkl.load(fp)
+    fig.update_layout(template="none")
+    return fig
 
 
 def read_salt(fname: str) -> str:
@@ -210,7 +298,26 @@ def cb_render(n_clicks, n_click_cv, patid):
         return [get_update_status(start_)] + out
 
 
+@app.callback(Output("patdisp-plot-disp", "children"),
+              Input("patdisp-plot-button", "n_clicks"),
+              State("patdisp-input-patid", "value")
+             )
+def plot_patient(plot_button, patid):
+    #ctx = dash.callback_context
+    if plot_button is None:
+        raise PreventUpdate
+    print(os.getcwd())
+
+    if is_patid(patid):
+        fig = get_monitorlf_visual(patid, engine, cache_root="cache")
+        print(fig)
+        return [dcc.Graph(figure=fig, style={"margin-top": "50px"})]
+    else:
+        return None
+
+
 thecase = "case when ({} notnull) then True else NULL end as {}"
+
 
 the_cases = {k: ",\n".join([col if (k == "overview") or (col in ref_cols) else thecase.format(col, col)
                             for col in all_cols[k]]) for k in all_data_tables}
@@ -221,9 +328,9 @@ the_cases = {k: ",\n".join([col if (k == "overview") or (col in ref_cols) else t
     Input("patdisp-interv-dropdown", "value"),
     Input("patdisp-interv-dropdown", "options"),
     Input("patdisp-input-patid", "value"),
-    Input("patdisp-plot-button", "n_clicks")
+    Input("patdisp-display-button", "n_clicks")
 )
-def plot_patient_interv(val, opts, patid, n_clicks):
+def display_patient_interv(val, opts, patid, n_clicks):
     ctx = dash.callback_context
     if n_clicks is None:
         raise PreventUpdate
@@ -234,7 +341,7 @@ def plot_patient_interv(val, opts, patid, n_clicks):
         button_id = ctx.triggered[0]['prop_id'].split('.')[0]
     print(button_id)
     out = []
-    if button_id == "patdisp-plot-button":
+    if button_id == "patdisp-display-button":
         if len(val) > 0:
             if "all" in val:
                 interv_l = [v["value"] for v in opts[1:]]
@@ -260,9 +367,10 @@ def plot_patient_interv(val, opts, patid, n_clicks):
             out = [html.Div(
                 [html.P(k), gentbl_raw(v, id="tbl_{}".format(k), style_table={'overflowX': 'auto'}), html.Br()]) for
                 k, v in data_lvl1.items()]
-            out += [html.Div([html.P("full table"), gentbl_raw(df.reset_index(),
-                                                               id="patientid-fulltbl",
-                                                               style_table={'overflowX': 'auto'})
+            out += [html.Div([html.P("full table"),
+                              gentbl_raw(df.reset_index(),
+                                         id="patientid-fulltbl",
+                                         style_table={'overflowX': 'auto'})
                               ]
                              )
                     ]

@@ -8,9 +8,34 @@ import json
 from dash import dcc, html
 from dash import dash_table as dt
 
+import base64
+import zlib
+from io import StringIO
 
 date_fmt = "%Y-%m-%d %H:%M:%S"
 
+valid_signames = {"spo2": ["lf__150456__150456__150456__spo-__spo-__perc", "lf__none__150456__none__spo2__none__perc",
+                     "lf__150456__150456__150472__spo-__spo-__perc", "lf__150456__150456__150476__spo-__spo-__perc",
+                     "lf__150456__150456__192960__spo-__spo-__perc", "lf__150456__150456__192980__spo-__spo-__perc",
+                     "lf__none__150456__none__spo2h__none__perc", "lf__150456__150456__150456__spo-__spo-__ok-nd"],
+            "btb": ["lf__147840__147850__147850__btbhf__btbhf__spm", "lf__none__147850__none__btbhf__none__spm"],
+            "rf": ["lf__151562__151562__151562__rf__rf__rpm", "lf__none__151562__none__rf__none__rpm",
+                   "lf__151562__151562__151562__rf__rf__ok-nd", "lf__none__151562__none__rf__none__okand"]
+            }
+
+
+def better_lookin(ax, fontsize=20, lightmode=False):
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
+                 ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(fontsize)
+    ax.legend(fontsize=fontsize)
+    ax.grid("on")
+    if lightmode:
+        ax.axis("off")
+    else:
+        ax.spines['right'].set_visible(False)
+        # ax.spines['left'].set_visible(False)
+        ax.spines['top'].set_visible(False)
 
 def gdate(date_fmt="%Y-%m-%d %H:%M:%S"):
     return datetime.now().strftime(date_fmt)
@@ -27,6 +52,48 @@ def pidprint(*arg, flag="status"):
     print("[{}] [{}] [{}]".format(os.getpid(), datetime.now(), flag), " ".join(map(str, arg)), file=sys.stderr)
     return
 
+
+def decompress_string(sz: str, verbose=False):
+    """
+    Decompress strings encoded in `patdb_tbox.psql.psql.compress_string`
+
+    Inputs
+
+    - sz:str, utf8 character strings (see `patdb_tbox.psql.psql.compress_string`)
+    - verbose: bool
+    """
+
+    if verbose:
+        pidprint("Get base64 from zstring...")
+    out = base64.b64decode(sz)
+
+    if verbose:
+        pidprint("Get decompressed bytes...")
+    out = zlib.decompress(out)
+
+    if verbose:
+        pidprint("Decode string")
+    return out.decode("utf8")
+
+def decompress_chunk(sz: str, verbose=False, nrows=None):
+    """
+    **Obselete** decompress a dataframe.
+    """
+    s = decompress_string(sz, verbose=verbose)
+
+    out = pd.DataFrame()
+    if s != "\n":
+        if verbose:
+            pidprint("str2DataFrame...")
+
+        out = pd.read_csv(StringIO(s), sep=";", nrows=nrows)
+
+        if verbose:
+            pidprint("Parse time columns...")
+        for k in ["timestamp", "context__tl", "date"]:
+            if k in out.columns:
+                out[k] = pd.to_datetime(out[k])
+    return out
 
 
 def get_dbcfg(fname):

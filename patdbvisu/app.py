@@ -49,7 +49,7 @@ main_layout=html.Div([
         html.Div([html.Button("Download raw", id="popstudy-downloadchecklists-button"),
                   Download(id="popstudy-downloadchecklists")]
                  ),
-        html.P(id='popstudy-querytext')
+        html.Div(id="popstudy-outputtxt-div")
     ], style={'display': 'flex', 'flex-direction': 'row'}),
     dcc.Markdown("[Definition of the categories](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/documentation#definition-of-categories)"),
     html.Div([

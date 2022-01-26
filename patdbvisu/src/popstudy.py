@@ -82,7 +82,7 @@ Pollard TJ, Johnson AEW, Raffa JD, Mark RG (2018). tableone: An open source
 @app.callback(
     Output(component_id="popstudy-checklists-results-div", component_property="children"),
     Output(component_id="popstudy-downloadchecklists", component_property="data"),
-    Output(component_id="popstudy-querytext", component_property="children"),
+    Output(component_id="popstudy-outputtxt-div", component_property="children"),
     Input(component_id="popstudy-updatechecklists-button", component_property='n_clicks'),
     Input(component_id="popstudy-checklists-div", component_property="children"),
     Input(component_id="popstudy-downloadchecklists-button", component_property='n_clicks'),
@@ -106,7 +106,7 @@ def update_checklist_test(n_clicks, checklists, dl_click):
 
     QUERIES = []
     print(len(checklists)//n_field_per_pop)
-
+    grp_names=[]
     for i in range(len(checklists)//n_field_per_pop):
         v = checklists[n_field_per_pop*i + 1]
         v_not = checklists[n_field_per_pop * i + 2]
@@ -125,13 +125,14 @@ def update_checklist_test(n_clicks, checklists, dl_click):
         f = [pos, neg]
         f = [ff for ff in f if (ff != "") and (ff != "not_")]
         grp_name = "Population-{} ".format(i + 1) + "_and_".join(f)
+        grp_names.append(grp_name)
 
         with engine.connect() as con:
             the_data_query = "select ov.*,vua.*, '{}' as \"group\" "\
                             "from overview ov, view__uid_has vua "\
                             "where {} "\
                             "and vua.ids__uid=ov.ids__uid;".format(grp_name, pos_cond + " and " + neg_cond)
-            # print(the_data_query)
+
             QUERIES.append(the_data_query[:-1])
 
             doverview = pd.read_sql(the_data_query, con)
@@ -154,19 +155,23 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     if all([dd.empty for dd in DF]):
         raise PreventUpdate
 
-    # print("finished", DF)
+    ids_dict = {k: df["ids__uid"].values.tolist() for k, df in zip(grp_names, DF)}
+    ids_str_list = sum([[html.P(k), html.P(";".join(v))] for k, v in ids_dict.items()],[])
 
     dout = pd.concat(DF, axis=0)
+
     print(dout.memory_usage(deep=True))
-    #fname_stem = "___".join(dout["group"].unique().reshape(-1).tolist())
+
+    outtxt = [html.P(full_query)] + [html.P()] + ids_str_list
+
     fname_stem = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     if button_id == "popstudy-downloadchecklists-button":
         out = (html.P("Download"),
                dcc.send_data_frame(dout.to_excel, filename="{}_demographics.xlsx".format(fname_stem)),
-               full_query)
+               outtxt)
     else:
         if len(DF) == 1:
-            out = [html.P("Need at least 2 populations, click on 'more' to add one"), None, full_query]
+            out = [html.P("Need at least 2 populations, click on 'more' to add one"), None, outtxt]
 
         else:
             columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "demos__age", "group"]
@@ -204,5 +209,5 @@ def update_checklist_test(n_clicks, checklists, dl_click):
                                )
                     ],
                    None,
-                   full_query)
+                   outtxt)
     return out

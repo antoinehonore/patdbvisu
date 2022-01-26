@@ -1,6 +1,7 @@
 from src.utils import all_data_tables2,decompress_chunk,valid_signames,better_lookin, run_select_queries, gentbl_raw, all_data_tables, ref_cols, get_dbcfg, get_engine,get_update_status,pidprint
 
 from startup import app,engine,all_cols
+from src.events import d as event_d
 
 import pandas as pd
 import dash
@@ -52,18 +53,19 @@ def get_signals(d, signames=None, Te="1S",date_col="timestamp"):
     return df
 
 
-def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None):
+def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=True):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
         the_intervals = list(map(lambda ss: "'" + ss + "'", pd.read_sql(s_uid, con).values.reshape(-1).tolist()))
-    s_interv = "select * from monitorlf where ids__interval in ({})".format(", ".join(the_intervals))
+    all_intervals = ", ".join(the_intervals)
+    s_interv = "select * from monitorlf where ids__interval in ({})".format(all_intervals)
 
     thehash_id = gethash(s_uid + s_interv)
 
     cache_fname = os.path.join(cache_root, thehash_id + "_monitorlf.pkl")
 
-    if not os.path.isfile(cache_fname):
+    if (not os.path.isfile(cache_fname)) or (force_redraw):
         with engine.connect() as con:
             dfmonitor = pd.read_sql(s_interv, con)
 
@@ -71,20 +73,54 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None):
 
         dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
         pidprint("Mondata:", dfmon.shape)
-        pidprint("Plot...")
 
+        with engine.connect() as con:
+            dftk = pd.read_sql(
+                "select * from takecare where ids__uid =\'{}\' and ids__interval in ({})".format(ids__uid,
+                                                                                                 all_intervals),
+                con)
+        dftk.dropna(how='all', axis=1, inplace=True)
+        pidprint("Takecare:", dftk.shape)
+
+
+        all_evt = sum(dftk[[s for s in dftk.columns if s.startswith("tkevt__")]].values.tolist(),[])
+        all_evt = [sum([ss.split("@") for ss in s.split("___")],[]) for s in all_evt if not (s is None)]
+
+
+        dftk = [[l[0], pd.to_datetime([l[1]])]  for l in all_evt]
+
+        pidprint("Takecare events:", len(dftk))
+
+
+        pidprint("Plot...")
 
         lgd = []
         the_plot_data = []
         if not (data2 is None):
-
-            the_plot_data += [go.Scatter(x=data2["timeline"],y=data2['dose'],name="dose")]
-            the_plot_data += [go.Scatter(x=data2["timeline"],y=data2['weight'],name="dose")]
+            the_plot_data += [go.Scatter(x=data2["timeline"],
+                                         y=data2['dose'],
+                                         name="dose")]
+            the_plot_data += [go.Scatter(x=data2["timeline"],
+                                         y=data2['weight'],
+                                         name="dose")]
 
             scale = data2.set_index("timeline")[['dose', "weight"]].max().max()
             lgd += ['dose', "weight"]
         else:
             scale = 1
+        # f19d8d014f398a43679b44ec736b4adeda36945890c3444e66a6f4d9afe7de7c
+
+        for l in dftk:
+            thecase = not (re.compile(event_d["sepsis"]).match(l[0]) is None)
+
+            print(l[0], thecase)
+
+            c = "darkred" if thecase else "black"
+            thesize = 6 if thecase else 1
+
+            the_plot_data += [go.Scatter(x=[l[1][0]]*10, y=np.linspace(0, 1, 10).tolist(),
+                                         hovertemplate="{}<br>{}<br>{}".format(*l[0].replace("tkevt__", "").split("/")),
+                                         mode='lines', line=dict(width=thesize, color=c), showlegend=False)]
 
         the_plot_data += [go.Scatter(x=dfmon.index,
                                    y=((dfmon[k] - dfmon.min().min()) / (dfmon.max().max() - dfmon.min().min()) * scale),
@@ -261,7 +297,7 @@ def cb_render(n_clicks, n_click_cv, patid):
                                       all_data_tables}
 
                     data_lvl1 = run_select_queries(select_queries, engine)
-                    #print(data_lvl1)
+
                     data_lvl1_l = [html.P("{} {}".format(k, str(v.shape))) for k, v in data_lvl1.items() if
                                    k != "overview"]
 
@@ -300,18 +336,14 @@ def cb_render(n_clicks, n_click_cv, patid):
 
 @app.callback(Output("patdisp-plot-disp", "children"),
               Input("patdisp-plot-button", "n_clicks"),
-              State("patdisp-input-patid", "value")
-             )
+              State("patdisp-input-patid", "value"))
 def plot_patient(plot_button, patid):
-    #ctx = dash.callback_context
     if plot_button is None:
         raise PreventUpdate
-    #print(os.getcwd())
 
-    if is_patid(patid):
-        fig = get_monitorlf_visual(patid, engine, cache_root="cache")
-        #print(fig)
-        return [dcc.Graph(figure=fig, style={"margin-top": "50px"})]
+    if all(is_patid(p) for p in patid.split(";")):
+        Figs = [get_monitorlf_visual(ids__uid, engine, cache_root="cache") for ids__uid in patid.split(";")[:5]]
+        return [dcc.Graph(figure=fig, style={"margin-top": "50px"}) for fig in Figs]
     else:
         return None
 

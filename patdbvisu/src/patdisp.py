@@ -53,7 +53,7 @@ def get_signals(d, signames=None, Te="1S",date_col="timestamp"):
     return df
 
 
-def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=True):
+def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
@@ -76,8 +76,7 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
 
         with engine.connect() as con:
             dftk = pd.read_sql(
-                "select * from takecare where ids__uid =\'{}\' and ids__interval in ({})".format(ids__uid,
-                                                                                                 all_intervals),
+                "select * from takecare where ids__uid =\'{}\'".format(ids__uid),
                 con)
         dftk.dropna(how='all', axis=1, inplace=True)
         pidprint("Takecare:", dftk.shape)
@@ -90,7 +89,6 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
         dftk = [[l[0], pd.to_datetime([l[1]])]  for l in all_evt]
 
         pidprint("Takecare events:", len(dftk))
-
 
         pidprint("Plot...")
 
@@ -109,7 +107,7 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
         else:
             scale = 1
         # f19d8d014f398a43679b44ec736b4adeda36945890c3444e66a6f4d9afe7de7c
-
+        sig_colors={"btb":"red","rf":"green","spo2":"blue"}
         for l in dftk:
             thecase = not (re.compile(event_d["sepsis"]).match(l[0]) is None)
 
@@ -124,15 +122,11 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
 
         the_plot_data += [go.Scatter(x=dfmon.index,
                                    y=((dfmon[k] - dfmon.min().min()) / (dfmon.max().max() - dfmon.min().min()) * scale),
-                                   name=k) for k in dfmon.columns]
+                                   name=k, line=dict(width=3, color=sig_colors[k])) for k in dfmon.columns]
 
         fig = go.Figure(the_plot_data, dict(title="monitorLF for {}".format(ids__uid)))
 
         lgd += ["spo2", "btb", "rf"]
-        #ax.set_xticks(ax.get_xticks(), rotation=-45)
-        #better_lookin(ax)
-        #ax.legend(lgd)
-        #ax.set_title(ids__uid)
 
         with open(cache_fname, "wb") as fp:
             pkl.dump(fig, fp)
@@ -341,13 +335,15 @@ def plot_patient(plot_button, patid):
     if plot_button is None:
         raise PreventUpdate
 
+    print(patid.split(";"))
+
     if all(is_patid(p) for p in patid.split(";")):
-        Figs = [get_monitorlf_visual(ids__uid, engine, cache_root="cache") for ids__uid in patid.split(";")[:5]]
-        return [dcc.Graph(figure=fig, style={"margin-top": "50px"}) for fig in Figs]
+        Figs = [get_monitorlf_visual(ids__uid, engine, cache_root="cache") for ids__uid in patid.split(";")]
+        return sum([[html.P(ids__uid), dcc.Graph(figure=fig, style={"margin-top": "50px"})] for ids__uid,fig in zip(patid.split(";"), Figs)],[])
     else:
         return None
 
-
+# 71f3f1ab2f42253f2fe36886720ef5353a2fe84244dd19c031dc4f4b1a189700
 thecase = "case when ({} notnull) then True else NULL end as {}"
 
 

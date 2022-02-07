@@ -41,6 +41,10 @@ drop view if exists view__overview_uid_u72_main;
 
 drop view if exists view__overview_uid_covid_died;
 
+drop view if exists view__monitor_meta_uid_rsv2021;
+drop view if exists view__monitor_meta_uid_rsv2022;
+drop view if exists view__monitor_meta_uid_rsv;
+
 drop view if exists view__takecare_uid_has;
 drop view if exists view__takecare_has;
 

@@ -11,9 +11,6 @@ import numpy as np
 import pickle as pkl
 import plotly.express as px
 import plotly.graph_objects as go
-
-#def pat_data_q(tbl_name, ids__uid, col="*"):
-#    return "select {} from {} where ids__uid=\'{}\'".format(col, tbl_name, ids__uid)
 import os
 
 import re
@@ -22,8 +19,52 @@ import time
 
 from functools import partial
 import hashlib
+from src.utils import get_colnames
 
+# The tables column names
+with engine.connect() as con:
+    all_cols = {k: get_colnames(k, con) for k in all_data_tables}
 
+ALL_COLORS = ["aliceblue", "antiquewhite", "aqua", "aquamarine", "azure",
+                "beige", "bisque", "black", "blanchedalmond", "blue",
+                "blueviolet", "brown", "burlywood", "cadetblue",
+                "chartreuse", "chocolate", "coral", "cornflowerblue",
+                "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
+                "darkgoldenrod", "darkgray", "darkgrey", "darkgreen",
+                "darkkhaki", "darkmagenta", "darkolivegreen", "darkorange",
+                "darkorchid", "darkred", "darksalmon", "darkseagreen",
+                "darkslateblue", "darkslategray", "darkslategrey",
+                "darkturquoise", "darkviolet", "deeppink", "deepskyblue",
+                "dimgray", "dimgrey", "dodgerblue", "firebrick",
+                "floralwhite", "forestgreen", "fuchsia", "gainsboro",
+                "ghostwhite", "gold", "goldenrod", "gray", "grey", "green",
+                "greenyellow", "honeydew", "hotpink", "indianred", "indigo",
+                "ivory", "khaki", "lavender", "lavenderblush", "lawngreen",
+                "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
+                "lightgoldenrodyellow", "lightgray", "lightgrey",
+                "lightgreen", "lightpink", "lightsalmon", "lightseagreen",
+                "lightskyblue", "lightslategray", "lightslategrey",
+                "lightsteelblue", "lightyellow", "lime", "limegreen",
+                "linen", "magenta", "maroon", "mediumaquamarine",
+                "mediumblue", "mediumorchid", "mediumpurple",
+                "mediumseagreen", "mediumslateblue", "mediumspringgreen",
+                "mediumturquoise", "mediumvioletred", "midnightblue",
+                "mintcream", "mistyrose", "moccasin", "navajowhite", "navy",
+                "oldlace", "olive", "olivedrab", "orange", "orangered",
+                "orchid", "palegoldenrod", "palegreen", "paleturquoise",
+                "palevioletred", "papayawhip", "peachpuff", "peru", "pink",
+                "plum", "powderblue", "purple", "red", "rosybrown",
+                "royalblue", "saddlebrown", "salmon", "sandybrown",
+                "seagreen", "seashell", "sienna", "silver", "skyblue",
+                "slateblue", "slategray", "slategrey", "springgreen",
+                "steelblue", "tan", "teal", "thistle", "tomato", "turquoise",
+                "violet", "wheat", "yellow",
+                "yellowgreen"
+            ] * 5
+
+all_the_monitorlf_cols = [s.strip("\"") for s in all_cols["monitorlf"] if s.strip("\"").startswith("lf__")]
+indiv_sig_colors = {signame: colorname for signame, colorname in zip(all_the_monitorlf_cols, ALL_COLORS[:len(all_the_monitorlf_cols)])}
+#print(indiv_sig_colors)
 
 # Remove empty
 def clean_sig(d):
@@ -32,7 +73,11 @@ def clean_sig(d):
 
 def merge_sig(dd, k, date_col="timestamp"):
     """This aggregates the dataframes encoded in different columns of the ...__lf sql tables."""
-    all_chunks = [decompress_chunk(s).drop(columns=["local_id"],errors="ignore").rename(columns={"date":"timestamp"}) for s in dd if not (s is None)]
+    all_chunks = [decompress_chunk(s).drop(columns=["local_id"],
+                                           errors="ignore").rename(columns={"date": "timestamp"})
+                  for s in dd if not (s is None)
+                  ]
+
     all_chunks = [c for c in all_chunks if c.shape[0] > 0]
 
     all_chunks = [c.rename(columns={l: k for l in [ll for ll in list(c) if ll != date_col]}).set_index(date_col)
@@ -40,28 +85,32 @@ def merge_sig(dd, k, date_col="timestamp"):
     if len(all_chunks) > 0:
         out = pd.concat(all_chunks, axis=0, ignore_index=False, sort=True).sort_index()
     else:
-        out = pd.DataFrame(index=pd.DatetimeIndex([],name="timestamp"), columns=[k])
+        out = pd.DataFrame(index=pd.DatetimeIndex([], name="timestamp"), columns=[k])
     return out
 
 
-def get_signals(d, signames=None, Te="1S",date_col="timestamp"):
+def get_signals(d, signames=None, Te="1S", date_col="timestamp"):
     """From the lf sql table, returns a dataframe with the data of similar signals aggregated and resampled."""
+
     allsigs = {
         k: merge_sig(clean_sig(d[v].dropna(axis=1, how='all')).values.reshape(-1), k,date_col=date_col).resample(Te).apply(np.nanmean) for
-        k, v in signames.items()}
+        k, v in signames.items()
+    }
+
     df = pd.concat(list(allsigs.values()), axis=1, sort=True).resample(Te).apply(np.nanmean)
     return df
 
 
-def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False):
+def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False, opts_signals=None):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
         the_intervals = list(map(lambda ss: "'" + ss + "'", pd.read_sql(s_uid, con).values.reshape(-1).tolist()))
+
     all_intervals = ", ".join(the_intervals)
     s_interv = "select * from monitorlf where ids__interval in ({})".format(all_intervals)
 
-    thehash_id = gethash(s_uid + s_interv)
+    thehash_id = gethash(s_uid + s_interv + str(opts_signals))
 
     cache_fname = os.path.join(cache_root, thehash_id + "_monitorlf.pkl")
 
@@ -70,8 +119,17 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
             dfmonitor = pd.read_sql(s_interv, con)
 
         pidprint("Downloaded:...", dfmonitor.shape)
+        disp_all_available = not (opts_signals is None)
 
-        dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
+        if disp_all_available:
+            if opts_signals[0] == "available":
+                all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}
+                dfmon = get_signals(dfmonitor, signames=all_signames, Te="10T")
+                sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
+        else:
+            dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
+            sig_colors = {"btb": "red", "rf": "green", "spo2": "blue"}
+
         pidprint("Mondata:", dfmon.shape)
 
         with engine.connect() as con:
@@ -81,19 +139,17 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
         dftk.dropna(how='all', axis=1, inplace=True)
         pidprint("Takecare:", dftk.shape)
 
+        all_evt = sum(dftk[[s for s in dftk.columns if s.startswith("tkevt__")]].values.tolist(), [])
+        all_evt = [sum([ss.split("@") for ss in s.split("___")], []) for s in all_evt if not (s is None)]
 
-        all_evt = sum(dftk[[s for s in dftk.columns if s.startswith("tkevt__")]].values.tolist(),[])
-        all_evt = [sum([ss.split("@") for ss in s.split("___")],[]) for s in all_evt if not (s is None)]
-
-
-        dftk = [[l[0], pd.to_datetime([l[1]])]  for l in all_evt]
+        dftk = [[l[0], pd.to_datetime([l[1]])] for l in all_evt]
 
         pidprint("Takecare events:", len(dftk))
-
         pidprint("Plot...")
 
         lgd = []
         the_plot_data = []
+
         if not (data2 is None):
             the_plot_data += [go.Scatter(x=data2["timeline"],
                                          y=data2['dose'],
@@ -106,8 +162,9 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
             lgd += ['dose', "weight"]
         else:
             scale = 1
+
         # f19d8d014f398a43679b44ec736b4adeda36945890c3444e66a6f4d9afe7de7c
-        sig_colors={"btb":"red","rf":"green","spo2":"blue"}
+
         for l in dftk:
             thecase = not (re.compile(event_d["sepsis"]).match(l[0]) is None)
 
@@ -122,7 +179,10 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
 
         the_plot_data += [go.Scatter(x=dfmon.index,
                                    y=((dfmon[k] - dfmon.min().min()) / (dfmon.max().max() - dfmon.min().min()) * scale),
-                                   name=k, line=dict(width=3, color=sig_colors[k])) for k in dfmon.columns]
+                                    hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
+                                   name=k,
+                                     showlegend= not disp_all_available,
+                                     line=dict(width=3, color=sig_colors[k])) for k in dfmon.columns]
 
         fig = go.Figure(the_plot_data, dict(title="monitorLF for {}".format(ids__uid)))
 
@@ -173,9 +233,8 @@ def format_pn(x) -> str:
 
     If the input does not match  re.compile("^[0-9]+-?[0-9]+$") (i.e. is only made of numbers potentially separated with a '-')
     then the output is returned.
-
-
     """
+
     # Can only remove the ambiguity if people are less than 100 years old
     if re_is_pn.fullmatch(x) is None: # is it not made of digits and potentially a '-'
         return x
@@ -330,15 +389,18 @@ def cb_render(n_clicks, n_click_cv, patid):
 
 @app.callback(Output("patdisp-plot-disp", "children"),
               Input("patdisp-plot-button", "n_clicks"),
-              State("patdisp-input-patid", "value"))
-def plot_patient(plot_button, patid):
+              State("patdisp-input-patid", "value"),
+              State("patdisp-plot-checklist","value"))
+def plot_patient(plot_button, patid_, opts_signals):
     if plot_button is None:
         raise PreventUpdate
 
+    patid = patid_.strip(";")
     print(patid.split(";"))
 
+
     if all(is_patid(p) for p in patid.split(";")):
-        Figs = [get_monitorlf_visual(ids__uid, engine, cache_root="cache") for ids__uid in patid.split(";")]
+        Figs = [get_monitorlf_visual(ids__uid, engine, cache_root="cache", opts_signals=opts_signals) for ids__uid in patid.split(";")]
         return sum([[html.P(ids__uid), dcc.Graph(figure=fig, style={"margin-top": "50px"})] for ids__uid,fig in zip(patid.split(";"), Figs)],[])
     else:
         return None

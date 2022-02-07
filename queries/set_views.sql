@@ -133,6 +133,17 @@ create view view__overview_uid_covid19 as (
     select distinct ids__uid from overview where projid like '%%covid19%%'
 );
 
+create view view__monitor_meta_uid_rsv2021 as (
+    select distinct ids__uid from monitor_meta where monid like '%%2021__RSV%%'
+);
+
+create view view__monitor_meta_uid_rsv2022 as (
+    select distinct ids__uid from monitor_meta where monid like '%%2022__RSV%%'
+);
+create view view__monitor_meta_uid_rsv as (
+    select distinct ids__uid from monitor_meta where monid like '%%RSV%%'
+);
+
 create view view__overview_uid_u71_main as (
     select distinct ids__uid from overview where u071_main like 'yes'
 );
@@ -170,6 +181,7 @@ create view view__overview_uid_extremely_preterm as (
 create view view__overview_uid_very_preterm as (
     select distinct ids__uid from overview where ga_w >= 28 and ga_w < 32
 );
+
 create view view__overview_uid_late_preterm as (
     select distinct ids__uid from overview where ga_w >= 32 and ga_w < 37
 );

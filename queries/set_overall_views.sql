@@ -44,6 +44,10 @@ create view view__uid_has as
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_u72_main v)) then 1 else 0 end as "covid_u72_main",
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_either_u71_u72 v)) then 1 else 0 end as "covid_either_u71_u72",
         case when (vua.ids__uid in (select v.ids__uid from view__overview_uid_covid_died v)) then 1 else 0 end as "covid_died",
+        case when (vua.ids__uid in (select v.ids__uid from view__monitor_meta_uid_rsv2021 v)) then 1 else 0 end as "rsv2021",
+        case when (vua.ids__uid in (select v.ids__uid from view__monitor_meta_uid_rsv2022 v)) then 1 else 0 end as "rsv2022",
+        case when (vua.ids__uid in (select v.ids__uid from view__monitor_meta_uid_rsv v)) then 1 else 0 end as "rsv",
+
 
         $REGISTERED_UID_TK_EVENTS$
 	from view__uid_all vua

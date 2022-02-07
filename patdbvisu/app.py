@@ -62,7 +62,10 @@ main_layout=html.Div([
         dcc.Input(id="patdisp-input-patid", placeholder="Write Patient ID", style=dict(width="450px")),
         html.Button('Search', id='patdisp-search-button'),
         html.Button('Convert', id='patdisp-convert-button'),
-        html.Button('Plot', id='patdisp-plot-button'),
+        html.Div([html.Button('Plot', id='patdisp-plot-button'),
+                  dcc.Checklist(options=[{"label": 'All available', "value": "available"}],
+                                id="patdisp-plot-checklist")]
+                 , className="row"),
         html.P(id="patdisp-convert-disp"),
         html.Div(id="patdisp-plot-disp")
     ], className="row"),
@@ -79,7 +82,7 @@ main_layout=html.Div([
                                                      style={'display': 'flex', 'flex-direction': 'row'}
                                                      ),
                                             html.Div(id="patdisp-figures")
-                                            ]
+                                    ]
              ),
     separator,
     html.Div([html.Br()] * 10)

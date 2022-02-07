@@ -26,7 +26,7 @@ with engine.connect() as con:
     all_cols = {k: get_colnames(k, con) for k in all_data_tables}
 
 ALL_COLORS = ["aliceblue", "antiquewhite", "aqua", "aquamarine", "azure",
-                "beige", "bisque", "black", "blanchedalmond", "blue",
+                "beige", "bisque", "black", "blanchedalmond",
                 "blueviolet", "brown", "burlywood", "cadetblue",
                 "chartreuse", "chocolate", "coral", "cornflowerblue",
                 "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
@@ -37,7 +37,7 @@ ALL_COLORS = ["aliceblue", "antiquewhite", "aqua", "aquamarine", "azure",
                 "darkturquoise", "darkviolet", "deeppink", "deepskyblue",
                 "dimgray", "dimgrey", "dodgerblue", "firebrick",
                 "floralwhite", "forestgreen", "fuchsia", "gainsboro",
-                "ghostwhite", "gold", "goldenrod", "gray", "grey", "green",
+                "ghostwhite", "gold", "goldenrod", "gray", "grey",
                 "greenyellow", "honeydew", "hotpink", "indianred", "indigo",
                 "ivory", "khaki", "lavender", "lavenderblush", "lawngreen",
                 "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
@@ -53,7 +53,7 @@ ALL_COLORS = ["aliceblue", "antiquewhite", "aqua", "aquamarine", "azure",
                 "oldlace", "olive", "olivedrab", "orange", "orangered",
                 "orchid", "palegoldenrod", "palegreen", "paleturquoise",
                 "palevioletred", "papayawhip", "peachpuff", "peru", "pink",
-                "plum", "powderblue", "purple", "red", "rosybrown",
+                "plum", "powderblue", "purple", "rosybrown",
                 "royalblue", "saddlebrown", "salmon", "sandybrown",
                 "seagreen", "seashell", "sienna", "silver", "skyblue",
                 "slateblue", "slategray", "slategrey", "springgreen",
@@ -62,8 +62,16 @@ ALL_COLORS = ["aliceblue", "antiquewhite", "aqua", "aquamarine", "azure",
                 "yellowgreen"
             ] * 5
 
+grouped_sig_colors = {"btb": "red", "rf": "green", "spo2": "blue"}
+
 all_the_monitorlf_cols = [s.strip("\"") for s in all_cols["monitorlf"] if s.strip("\"").startswith("lf__")]
-indiv_sig_colors = {signame: colorname for signame, colorname in zip(all_the_monitorlf_cols, ALL_COLORS[:len(all_the_monitorlf_cols)])}
+indiv_sig_colors = {signame: colorname if len([grouped_sig_colors[k] for k,v in valid_signames.items() if signame in v])==0
+                                        else [grouped_sig_colors[k] for k,v in valid_signames.items() if signame in v][0]
+
+                    for signame, colorname in
+                    zip(all_the_monitorlf_cols, ALL_COLORS[:len(all_the_monitorlf_cols)])}
+
+
 #print(indiv_sig_colors)
 
 # Remove empty
@@ -128,7 +136,7 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
                 sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
         else:
             dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
-            sig_colors = {"btb": "red", "rf": "green", "spo2": "blue"}
+            sig_colors = grouped_sig_colors
 
         pidprint("Mondata:", dfmon.shape)
 

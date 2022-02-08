@@ -109,7 +109,7 @@ def get_signals(d, signames=None, Te="1S", date_col="timestamp"):
     return df
 
 
-def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False, opts_signals=None):
+def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=True, opts_signals=None):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
@@ -127,8 +127,7 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
             dfmonitor = pd.read_sql(s_interv, con)
 
         pidprint("Downloaded:...", dfmonitor.shape)
-        disp_all_available = not (opts_signals is None)
-
+        disp_all_available = len(opts_signals)>0
         if disp_all_available:
             if opts_signals[0] == "available":
                 all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}

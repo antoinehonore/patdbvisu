@@ -109,7 +109,7 @@ def get_signals(d, signames=None, Te="1S", date_col="timestamp"):
     return df
 
 
-def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=True, opts_signals=None):
+def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False, opts_signals=None):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:

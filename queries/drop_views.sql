@@ -72,3 +72,4 @@ drop view if exists view__monitorhf_unitname;
 
 drop view if exists view__med_uid_has_caffein;
 drop view if exists view__med_has_caffein;
+

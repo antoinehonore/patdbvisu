@@ -63,7 +63,8 @@ main_layout=html.Div([
         html.Button('Search', id='patdisp-search-button'),
         html.Button('Convert', id='patdisp-convert-button'),
         html.Div([html.Button('Plot', id='patdisp-plot-button'),
-                  dcc.Checklist(options=[{"label": 'All available', "value": "available"}],value=[],
+                  dcc.Checklist(options=[{"label": 'All available LF', "value": "available_lf"},
+                                         {"label": 'All available HF', "value": "waveform"}], value=[],
                                 id="patdisp-plot-checklist")]
                  , className="row"),
         html.P(id="patdisp-convert-disp"),

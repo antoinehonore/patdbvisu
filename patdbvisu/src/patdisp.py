@@ -72,8 +72,6 @@ indiv_sig_colors = {signame: colorname if len([grouped_sig_colors[k] for k,v in 
                     zip(all_the_monitorlf_cols, ALL_COLORS[:len(all_the_monitorlf_cols)])}
 
 
-#print(indiv_sig_colors)
-
 # Remove empty
 def clean_sig(d):
     return d[d != None]
@@ -107,9 +105,108 @@ def get_signals(d, signames=None, Te="1S", date_col="timestamp"):
 
     df = pd.concat(list(allsigs.values()), axis=1, sort=True).resample(Te).apply(np.nanmean)
     return df
+import zlib
+import base64
+from io import StringIO
+
+def decompress_string(sz: str, verbose=False):
+    """
+    Decompress strings encoded in `patdb_tbox.psql.psql.compress_string`
+
+    Inputs
+
+    - sz:str, utf8 character strings (see `patdb_tbox.psql.psql.compress_string`)
+    - verbose: bool
+    """
+
+    if verbose:
+        pidprint("Get base64 from zstring...")
+    out = base64.b64decode(sz)
+
+    if verbose:
+        pidprint("Get decompressed bytes...")
+    out = zlib.decompress(out)
+
+    if verbose:
+        pidprint("Decode string")
+    return out.decode("utf8")
+
+def signal_decomp(s, Ts=None):
+    df = pd.read_csv(StringIO(decompress_string(s)), sep=';')
+    df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d %H:%M:%S.000000%f")
+    if not (Ts is None):
+        df.set_index("date", inplace=True)
+        df = df.resample(Ts).first().reset_index()
+    df["data"] = list(map(hfstr2df, df[["date", "data"]].values))
+    return pd.concat(df["data"].values, ignore_index=True)
 
 
-def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False, opts_signals=None):
+def hfstr2df(l):
+    ref_date, s = l
+    out = pd.DataFrame()
+    if not (s is None):
+        a = np.array(list(map(float, decompress_string(s).split(";"))))
+        ms = a[0]
+        a = a[1:].reshape(-1, 1)
+        dt = np.array([ref_date+pd.Timedelta(ms * i, "ms") for i in range(len(a))]).reshape(-1, 1)
+        data = np.concatenate([dt, a], axis=1)
+        out = pd.DataFrame(data=data, columns=["date", "data"])
+    return out
+
+
+from datetime import datetime
+
+
+def run_query(s: str, engine, verbose=False) -> pd.DataFrame:
+    """
+    Runs the query specified as a string vs a db engine.
+
+    Inputs:
+
+    - s:str, query
+    - engine: (see patdb_tbox.psql.psql.create_engine) it can also be a connection
+
+    Returns:
+
+        - pd.DataFrame
+    """
+    if verbose:
+        pidprint("\n", s, flag="info")
+    start_dl_time = datetime.now()
+    df = pd.read_sql(s, engine)
+    end_dl_time = datetime.now()
+    dl_time = (end_dl_time - start_dl_time).total_seconds()
+    memusage_MB = df.memory_usage(index=True, deep=True).sum() / 1024 / 1024
+
+    if verbose:
+        pidprint("dl_time={} sec, volume={} MB, link speed={} MB/s".format(round(dl_time, 3), round(memusage_MB, 3),
+                                                                           round(memusage_MB / dl_time, 3)),
+                 flag="report")
+    return df
+
+def get_hf_data(the_intervals,Ts=None):
+    D = []
+    for theinterv in the_intervals:
+        with engine.connect() as con:
+            s_interv = "select * from monitorhf where ids__interval = {}".format(theinterv)
+
+            dtmp = run_query(s_interv, con, verbose=True).dropna(axis=1)
+            all_signames = {s: [s] for s in dtmp.columns if s.startswith("hf__")}
+            dtmp = dtmp[list(all_signames.keys())].copy()
+            dtmp = dtmp.applymap(partial(signal_decomp, Ts=Ts))
+            for c, dd in zip(dtmp.columns, dtmp.values[0]):
+                dd.columns = ["date", c]
+
+            if dtmp.shape[1] > 0:
+                dtmp = pd.concat(dtmp.values[0], axis=0).set_index("date")
+                D.append(dtmp)
+
+    dfmonhf = pd.concat(D, axis=0)
+    dfmonhf[dfmonhf.columns] = dfmonhf[dfmonhf.columns].values.astype(float)
+    return dfmonhf, all_signames
+
+
+def get_monitor_visual(ids__uid, engine, get_hf=False,cache_root=".", data2=None, force_redraw=False, opts_signals=None):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
@@ -120,24 +217,36 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
 
     thehash_id = gethash(s_uid + s_interv + str(opts_signals))
 
-    cache_fname = os.path.join(cache_root, thehash_id + "_monitorlf.pkl")
+    cache_fname = os.path.join(cache_root, thehash_id + "_monitor.pkl")
+    Ts = "10T"
+
+    print(opts_signals)
 
     if (not os.path.isfile(cache_fname)) or (force_redraw):
+
         with engine.connect() as con:
             dfmonitor = pd.read_sql(s_interv, con)
 
         pidprint("Downloaded:...", dfmonitor.shape)
-        disp_all_available = len(opts_signals)>0
+
+        disp_all_available = "available_lf" in opts_signals
+        get_hf = "waveform" in opts_signals
+
         if disp_all_available:
-            if opts_signals[0] == "available":
+            if opts_signals[0] == "available_lf":
                 all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}
-                dfmon = get_signals(dfmonitor, signames=all_signames, Te="10T")
+                dfmon = get_signals(dfmonitor, signames=all_signames, Te=Ts)
                 sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
         else:
             dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
             sig_colors = grouped_sig_colors
 
-        pidprint("Mondata:", dfmon.shape)
+
+        if get_hf:
+            dfmonhf, all_hf_signames = get_hf_data(the_intervals, Ts=Ts)
+
+        pidprint("Mondata:", dfmonhf.shape,
+                 ", ", round(dfmonhf.memory_usage(deep=True).sum()/1024/1024, 2), "MB")
 
         with engine.connect() as con:
             dftk = pd.read_sql(
@@ -190,6 +299,14 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
                                    name=k,
                                      showlegend= not disp_all_available,
                                      line=dict(width=3, color=sig_colors[k])) for k in dfmon.columns]
+        if get_hf:
+            the_plot_data += [go.Scatter(   x=dfmonhf.index,
+                                            y=((dfmonhf[k] - dfmonhf.min().min()) / (dfmonhf.max().max() - dfmonhf.min().min()) * scale),
+                                            hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
+                                            mode='markers',
+                                            name=k,
+                                            showlegend= not disp_all_available,
+                                            line=dict(width=3, color=sig_colors[k])) for k in dfmonhf.columns]
 
         fig = go.Figure(the_plot_data, dict(title="monitorLF for {}".format(ids__uid)))
 
@@ -203,6 +320,7 @@ def get_monitorlf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
             fig = pkl.load(fp)
     fig.update_layout(template="none")
     return fig
+
 
 
 def read_salt(fname: str) -> str:
@@ -397,7 +515,7 @@ def cb_render(n_clicks, n_click_cv, patid):
 @app.callback(Output("patdisp-plot-disp", "children"),
               Input("patdisp-plot-button", "n_clicks"),
               State("patdisp-input-patid", "value"),
-              State("patdisp-plot-checklist","value"))
+              State("patdisp-plot-checklist", "value"))
 def plot_patient(plot_button, patid_, opts_signals):
     if plot_button is None:
         raise PreventUpdate
@@ -405,9 +523,8 @@ def plot_patient(plot_button, patid_, opts_signals):
     patid = patid_.strip(";")
     print(patid.split(";"))
 
-
     if all(is_patid(p) for p in patid.split(";")):
-        Figs = [get_monitorlf_visual(ids__uid, engine, cache_root="cache", opts_signals=opts_signals) for ids__uid in patid.split(";")]
+        Figs = [get_monitor_visual(ids__uid, engine, cache_root="cache", opts_signals=opts_signals) for ids__uid in patid.split(";")]
         return sum([[html.P(ids__uid), dcc.Graph(figure=fig, style={"margin-top": "50px"})] for ids__uid,fig in zip(patid.split(";"), Figs)],[])
     else:
         return None

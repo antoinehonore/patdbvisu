@@ -71,6 +71,13 @@ indiv_sig_colors = {signame: colorname if len([grouped_sig_colors[k] for k,v in 
                     for signame, colorname in
                     zip(all_the_monitorlf_cols, ALL_COLORS[:len(all_the_monitorlf_cols)])}
 
+all_the_monitorhf_cols = [s.strip("\"") for s in all_cols["monitorhf"] if s.strip("\"").startswith("hf__")]
+indiv_hfsig_colors = {signame: colorname if len([grouped_sig_colors[k] for k,v in valid_signames.items() if signame in v])==0
+                                        else [grouped_sig_colors[k] for k,v in valid_signames.items() if signame in v][0]
+
+                    for signame, colorname in
+                    zip(all_the_monitorhf_cols, ALL_COLORS[:len(all_the_monitorhf_cols)])}
+
 
 # Remove empty
 def clean_sig(d):
@@ -184,29 +191,33 @@ def run_query(s: str, engine, verbose=False) -> pd.DataFrame:
                  flag="report")
     return df
 
-def get_hf_data(the_intervals,Ts=None):
+
+def get_hf_data(the_intervals, Ts=None):
     D = []
-    for theinterv in the_intervals:
+    for i_interv, theinterv in enumerate(the_intervals):
+        pidprint("Interv:", i_interv + 1, "/", len(the_intervals))
         with engine.connect() as con:
             s_interv = "select * from monitorhf where ids__interval = {}".format(theinterv)
 
             dtmp = run_query(s_interv, con, verbose=True).dropna(axis=1)
-            all_signames = {s: [s] for s in dtmp.columns if s.startswith("hf__")}
-            dtmp = dtmp[list(all_signames.keys())].copy()
-            dtmp = dtmp.applymap(partial(signal_decomp, Ts=Ts))
-            for c, dd in zip(dtmp.columns, dtmp.values[0]):
-                dd.columns = ["date", c]
-
-            if dtmp.shape[1] > 0:
-                dtmp = pd.concat(dtmp.values[0], axis=0).set_index("date")
-                D.append(dtmp)
+            print(dtmp.shape)
+            if dtmp.shape[1] > 0 and dtmp.shape[0] > 0:
+                all_signames = {s: [s] for s in dtmp.columns if s.startswith("hf__")}
+                dtmp = dtmp[list(all_signames.keys())].copy()
+                dtmp = dtmp.applymap(partial(signal_decomp, Ts=Ts))
+                for c, dd in zip(dtmp.columns, dtmp.values[0]):
+                    dd.columns = ["date", c]
+                print(dtmp.shape)
+                if dtmp.shape[1] > 0 and dtmp.shape[0] > 0:
+                    dtmp = pd.concat(dtmp.values[0], axis=0).set_index("date")
+                    D.append(dtmp)
 
     dfmonhf = pd.concat(D, axis=0)
     dfmonhf[dfmonhf.columns] = dfmonhf[dfmonhf.columns].values.astype(float)
-    return dfmonhf, all_signames
+    return dfmonhf#, {s: [s] for s in dfmonhf.columns}
 
 
-def get_monitor_visual(ids__uid, engine, get_hf=False,cache_root=".", data2=None, force_redraw=False, opts_signals=None):
+def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False, opts_signals=None):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
@@ -237,13 +248,15 @@ def get_monitor_visual(ids__uid, engine, get_hf=False,cache_root=".", data2=None
                 all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}
                 dfmon = get_signals(dfmonitor, signames=all_signames, Te=Ts)
                 sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
-        else:
-            dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
-            sig_colors = grouped_sig_colors
+            else:
+                dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
+                sig_colors = grouped_sig_colors
 
 
         if get_hf:
-            dfmonhf, all_hf_signames = get_hf_data(the_intervals, Ts=Ts)
+            dfmonhf = get_hf_data(the_intervals, Ts=Ts)
+
+        #sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
 
         pidprint("Mondata:", dfmonhf.shape,
                  ", ", round(dfmonhf.memory_usage(deep=True).sum()/1024/1024, 2), "MB")
@@ -306,7 +319,7 @@ def get_monitor_visual(ids__uid, engine, get_hf=False,cache_root=".", data2=None
                                             mode='markers',
                                             name=k,
                                             showlegend= not disp_all_available,
-                                            line=dict(width=3, color=sig_colors[k])) for k in dfmonhf.columns]
+                                            line=dict(width=3, color=indiv_hfsig_colors[k])) for k in dfmonhf.columns]
 
         fig = go.Figure(the_plot_data, dict(title="monitorLF for {}".format(ids__uid)))
 

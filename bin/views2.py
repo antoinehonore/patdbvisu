@@ -44,7 +44,9 @@ def join_str(*args):
 def format_desc(dd, dtype=np.float64, digits=3, short=False):
     return join_str(get_med_str(dd.astype(dtype), digits=digits), get_q_str(dd.astype(dtype), short=short, digits=digits))
 
+
 all_data_tables.pop(0)
+
 
 from multiprocessing import Pool
 from functools import partial
@@ -59,6 +61,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     thepatid = "c656cb9d57076c8b57614e4141dd90f4d36580c0ae47aeda86098def5701d7dc"
     l = []
+    fname = "/home/anthon@ad.cmm.se/owncloud.ki/PhD/documents/people/students/2022carolin/bool_data.sql"
+
+    s = read_query_file()
+
     with engine.connect() as con:
         ilist = get_pat_intervals(thepatid, con)
 
@@ -66,3 +72,6 @@ if __name__ == "__main__":
         start_ = datetime.now()
         out = list(map(f, ilist))
         print((datetime.now() - start_).total_seconds()/len(out), "sec/interv")
+
+
+

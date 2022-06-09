@@ -139,13 +139,18 @@ def decompress_string(sz: str, verbose=False):
     return out.decode("utf8")
 
 def signal_decomp(s, Ts=None):
-    df = pd.read_csv(StringIO(decompress_string(s)), sep=';')
-    df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d %H:%M:%S.000000%f")
-    if not (Ts is None):
-        df.set_index("date", inplace=True)
-        df = df.resample(Ts).first().reset_index()
-    df["data"] = list(map(hfstr2df, df[["date", "data"]].values))
-    return pd.concat(df["data"].values, ignore_index=True)
+
+    out=pd.DataFrame(columns=["date","data"])
+    s_uz = decompress_string(s)
+    if len(s_uz)>1:
+        df = pd.read_csv(StringIO(s_uz), sep=';')
+        df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d %H:%M:%S.000000%f")
+        if not (Ts is None):
+            df.set_index("date", inplace=True)
+            df = df.resample(Ts).first().reset_index()
+        df["data"] = list(map(hfstr2df, df[["date", "data"]].values))
+        out = pd.concat(df["data"].values, ignore_index=True)
+    return out
 
 
 def hfstr2df(l):
@@ -158,6 +163,7 @@ def hfstr2df(l):
         dt = np.array([ref_date+pd.Timedelta(ms * i, "ms") for i in range(len(a))]).reshape(-1, 1)
         data = np.concatenate([dt, a], axis=1)
         out = pd.DataFrame(data=data, columns=["date", "data"])
+        out = out.set_index("date").resample(pd.Timedelta(1, "s")).first().reset_index()
     return out
 
 
@@ -213,7 +219,8 @@ def get_hf_data(the_intervals, Ts=None):
                     D.append(dtmp)
 
     dfmonhf = pd.concat(D, axis=0)
-    dfmonhf[dfmonhf.columns] = dfmonhf[dfmonhf.columns].values.astype(float)
+    dfmonhf[dfmonhf.columns] = dfmonhf[dfmonhf.columns].values.astype(np.float16)
+
     return dfmonhf#, {s: [s] for s in dfmonhf.columns}
 
 
@@ -231,35 +238,36 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
     cache_fname = os.path.join(cache_root, thehash_id + "_monitor.pkl")
     Ts = "10T"
 
-    print(opts_signals)
-
+    #pidprint(opts_signals)
+    pidprint(cache_fname)
     if (not os.path.isfile(cache_fname)) or (force_redraw):
 
         with engine.connect() as con:
             dfmonitor = pd.read_sql(s_interv, con)
 
         pidprint("Downloaded:...", dfmonitor.shape)
+        disp_all_available = False
+        get_hf=False
 
-        disp_all_available = "available_lf" in opts_signals
-        get_hf = "waveform" in opts_signals
+        if "available_lf" in opts_signals:
+            disp_all_available=True
+            all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}
+            dfmon = get_signals(dfmonitor, signames=all_signames, Te=Ts)
+            sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
+        else:
+            dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
+            sig_colors = grouped_sig_colors
 
-        if disp_all_available:
-            if opts_signals[0] == "available_lf":
-                all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}
-                dfmon = get_signals(dfmonitor, signames=all_signames, Te=Ts)
-                sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
-            else:
-                dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
-                sig_colors = grouped_sig_colors
-
-
-        if get_hf:
+        if "waveform" in opts_signals:
+            get_hf = True
             dfmonhf = get_hf_data(the_intervals, Ts=Ts)
 
-        #sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
+            # Rescaling
+            dfmonhf = (dfmonhf - dfmonhf.min()) / (dfmonhf.max() - dfmonhf.min()) / dfmonhf.shape[1] + 1 / \
+                  dfmonhf.shape[1] * np.arange(dfmonhf.shape[1]).reshape(1, -1) +1
 
-        pidprint("Mondata:", dfmonhf.shape,
-                 ", ", round(dfmonhf.memory_usage(deep=True).sum()/1024/1024, 2), "MB")
+            pidprint("Mondata:", dfmonhf.shape,
+                     ", ", round(dfmonhf.memory_usage(deep=True).sum()/1024/1024, 2), "MB")
 
         with engine.connect() as con:
             dftk = pd.read_sql(
@@ -302,23 +310,24 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
             c = "darkred" if thecase else "black"
             thesize = 6 if thecase else 1
 
-            the_plot_data += [go.Scatter(x=[l[1][0]]*10, y=np.linspace(0, 1, 10).tolist(),
+            the_plot_data += [go.Scattergl(x=[l[1][0]]*10, y=np.linspace(0, 1, 10).tolist(),
                                          hovertemplate="{}<br>{}<br>{}".format(*l[0].replace("tkevt__", "").split("/")),
                                          mode='lines', line=dict(width=thesize, color=c), showlegend=False)]
 
-        the_plot_data += [go.Scatter(x=dfmon.index,
+        the_plot_data += [go.Scattergl(x=dfmon.index,
                                    y=((dfmon[k] - dfmon.min().min()) / (dfmon.max().max() - dfmon.min().min()) * scale),
                                     hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
                                    name=k,
                                      showlegend= not disp_all_available,
                                      line=dict(width=3, color=sig_colors[k])) for k in dfmon.columns]
         if get_hf:
-            the_plot_data += [go.Scatter(   x=dfmonhf.index,
-                                            y=((dfmonhf[k] - dfmonhf.min().min()) / (dfmonhf.max().max() - dfmonhf.min().min()) * scale),
+            the_plot_data += [go.Scattergl(   x=dfmonhf.index,
+                                            y=dfmonhf[k],
                                             hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
-                                            mode='markers',
+                                            mode='lines+markers',
                                             name=k,
                                             showlegend= not disp_all_available,
+                                            marker=dict(color=indiv_hfsig_colors[k],),
                                             line=dict(width=3, color=indiv_hfsig_colors[k])) for k in dfmonhf.columns]
 
         fig = go.Figure(the_plot_data, dict(title="monitorLF for {}".format(ids__uid)))

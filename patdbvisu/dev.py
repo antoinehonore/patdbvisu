@@ -184,10 +184,11 @@ def hfstr2df(l):
         dt = np.array([ref_date+pd.Timedelta(ms * i, "ms") for i in range(len(a))]).reshape(-1, 1)
         data = np.concatenate([dt, a], axis=1)
         out = pd.DataFrame(data=data, columns=["date", "data"])
+        out = out.set_index("date").resample(pd.Timedelta(ms, "ms")*5).first().reset_index()
     return out
 
 
-def get_hf_data(the_intervals,Ts=None):
+def get_hf_data(the_intervals, Ts=None):
     D = []
     for theinterv in the_intervals:
         with engine.connect() as con:
@@ -207,7 +208,7 @@ def get_hf_data(the_intervals,Ts=None):
             D.append(dtmp)
 
     dfmonhf = pd.concat(D, axis=0)
-    dfmonhf[dfmonhf.columns] = dfmonhf[dfmonhf.columns].values.astype(float)
+    dfmonhf[dfmonhf.columns] = dfmonhf[dfmonhf.columns].values.astype(np.float16)
     return dfmonhf,all_signames
 
 
@@ -309,5 +310,5 @@ def get_monitorhf_visual(ids__uid, engine, cache_root=".", data2=None, force_red
 if __name__ == "__main__":
     ids__uid = "a120b4393ca0162f92cae3619c507934c9f19a44dca56f8dfe3f5559e1c2d4dc"
     fig = get_monitorhf_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=True, opts_signals=None)
-    print("")
+    #print("")
     pass

@@ -21,7 +21,7 @@ test:
 	@echo $(fname)
 
 run:
-	gunicorn -b 127.0.0.1:8050 app:server --timeout 600
+	gunicorn -b 127.0.0.1:8050 app:server --timeout 1200
 
 upload: $(interm_fname).flag
 	@echo ""

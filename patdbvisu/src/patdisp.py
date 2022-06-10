@@ -102,19 +102,22 @@ def merge_sig(dd, k, date_col="timestamp"):
     return out
 
 
-def get_signals(d, signames=None, Te="1S", date_col="timestamp"):
+def get_signals(d, signames=None, Ts="1S", date_col="timestamp"):
     """From the lf sql table, returns a dataframe with the data of similar signals aggregated and resampled."""
 
     allsigs = {
-        k: merge_sig(clean_sig(d[v].dropna(axis=1, how='all')).values.reshape(-1), k,date_col=date_col).resample(Te).apply(np.nanmean) for
+        k: merge_sig(clean_sig(d[v].dropna(axis=1, how='all')).values.reshape(-1), k,date_col=date_col).resample(Ts).apply(np.nanmean) for
         k, v in signames.items()
     }
 
-    df = pd.concat(list(allsigs.values()), axis=1, sort=True).resample(Te).apply(np.nanmean)
+    df = pd.concat(list(allsigs.values()), axis=1, sort=True).resample(Ts).apply(np.nanmean)
     return df
+
 import zlib
 import base64
 from io import StringIO
+from datetime import datetime
+
 
 def decompress_string(sz: str, verbose=False):
     """
@@ -138,22 +141,22 @@ def decompress_string(sz: str, verbose=False):
         pidprint("Decode string")
     return out.decode("utf8")
 
-def signal_decomp(s, Ts=None):
 
-    out=pd.DataFrame(columns=["date","data"])
+def signal_decomp(s, Ts=None, subsample=True):
+    out = pd.DataFrame(columns=["date", "data"])
     s_uz = decompress_string(s)
-    if len(s_uz)>1:
+    if len(s_uz) > 1:
         df = pd.read_csv(StringIO(s_uz), sep=';')
         df["date"] = pd.to_datetime(df["date"], format="%Y-%m-%d %H:%M:%S.000000%f")
         if not (Ts is None):
             df.set_index("date", inplace=True)
             df = df.resample(Ts).first().reset_index()
-        df["data"] = list(map(hfstr2df, df[["date", "data"]].values))
+        df["data"] = list(map(partial(hfstr2df, subsample=subsample), df[["date", "data"]].values))
         out = pd.concat(df["data"].values, ignore_index=True)
     return out
 
 
-def hfstr2df(l):
+def hfstr2df(l, subsample=None):
     ref_date, s = l
     out = pd.DataFrame()
     if not (s is None):
@@ -163,11 +166,9 @@ def hfstr2df(l):
         dt = np.array([ref_date+pd.Timedelta(ms * i, "ms") for i in range(len(a))]).reshape(-1, 1)
         data = np.concatenate([dt, a], axis=1)
         out = pd.DataFrame(data=data, columns=["date", "data"])
-        out = out.set_index("date").resample(pd.Timedelta(1, "s")).first().reset_index()
+        if not (subsample is None):
+            out = out.set_index("date").resample(subsample).first().reset_index()
     return out
-
-
-from datetime import datetime
 
 
 def run_query(s: str, engine, verbose=False) -> pd.DataFrame:
@@ -198,7 +199,7 @@ def run_query(s: str, engine, verbose=False) -> pd.DataFrame:
     return df
 
 
-def get_hf_data(the_intervals, Ts=None):
+def get_hf_data(the_intervals, Ts=None, subsample=True):
     D = []
     for i_interv, theinterv in enumerate(the_intervals):
         pidprint("Interv:", i_interv + 1, "/", len(the_intervals))
@@ -210,7 +211,7 @@ def get_hf_data(the_intervals, Ts=None):
             if dtmp.shape[1] > 0 and dtmp.shape[0] > 0:
                 all_signames = {s: [s] for s in dtmp.columns if s.startswith("hf__")}
                 dtmp = dtmp[list(all_signames.keys())].copy()
-                dtmp = dtmp.applymap(partial(signal_decomp, Ts=Ts))
+                dtmp = dtmp.applymap(partial(signal_decomp, Ts=Ts, subsample=subsample))
                 for c, dd in zip(dtmp.columns, dtmp.values[0]):
                     dd.columns = ["date", c]
                 print(dtmp.shape)
@@ -238,7 +239,6 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
     cache_fname = os.path.join(cache_root, thehash_id + "_monitor.pkl")
     Ts = "10T"
 
-    #pidprint(opts_signals)
     pidprint(cache_fname)
     if (not os.path.isfile(cache_fname)) or (force_redraw):
 
@@ -248,19 +248,20 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
         pidprint("Downloaded:...", dfmonitor.shape)
         disp_all_available = False
         get_hf=False
-
+        Ts="10T"
+        subsample=pd.Timedelta(1, "s")
         if "available_lf" in opts_signals:
             disp_all_available=True
             all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}
-            dfmon = get_signals(dfmonitor, signames=all_signames, Te=Ts)
+            dfmon = get_signals(dfmonitor, signames=all_signames, Ts=Ts)
             sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
         else:
-            dfmon = get_signals(dfmonitor, signames=valid_signames, Te="10T")
+            dfmon = get_signals(dfmonitor, signames=valid_signames, Ts=Ts)
             sig_colors = grouped_sig_colors
 
         if "waveform" in opts_signals:
             get_hf = True
-            dfmonhf = get_hf_data(the_intervals, Ts=Ts)
+            dfmonhf = get_hf_data(the_intervals, Ts=Ts, subsample=subsample)
 
             # Rescaling
             dfmonhf = (dfmonhf - dfmonhf.min()) / (dfmonhf.max() - dfmonhf.min()) / dfmonhf.shape[1] + 1 / \

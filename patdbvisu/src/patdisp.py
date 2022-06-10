@@ -171,7 +171,7 @@ def hfstr2df(l, subsample=None):
     return out
 
 
-def run_query(s: str, engine, verbose=False) -> pd.DataFrame:
+def run_query(s: str, engine, verbose=0) -> pd.DataFrame:
     """
     Runs the query specified as a string vs a db engine.
 
@@ -184,7 +184,7 @@ def run_query(s: str, engine, verbose=False) -> pd.DataFrame:
 
         - pd.DataFrame
     """
-    if verbose:
+    if verbose >= 2:
         pidprint("\n", s, flag="info")
     start_dl_time = datetime.now()
     df = pd.read_sql(s, engine)
@@ -192,29 +192,30 @@ def run_query(s: str, engine, verbose=False) -> pd.DataFrame:
     dl_time = (end_dl_time - start_dl_time).total_seconds()
     memusage_MB = df.memory_usage(index=True, deep=True).sum() / 1024 / 1024
 
-    if verbose:
+    if verbose>=1:
         pidprint("dl_time={} sec, volume={} MB, link speed={} MB/s".format(round(dl_time, 3), round(memusage_MB, 3),
                                                                            round(memusage_MB / dl_time, 3)),
                  flag="report")
     return df
 
 
-def get_hf_data(the_intervals, Ts=None, subsample=True):
+def get_hf_data(the_intervals, engine, Ts=None, subsample=pd.Timedelta(1,"s")):
     D = []
-    for i_interv, theinterv in enumerate(the_intervals):
-        pidprint("Interv:", i_interv + 1, "/", len(the_intervals))
-        with engine.connect() as con:
+    with engine.connect() as con:
+        for i_interv, theinterv in enumerate(the_intervals):
+            pidprint("Interv:", i_interv + 1, "/", len(the_intervals))
+
             s_interv = "select * from monitorhf where ids__interval = {}".format(theinterv)
 
-            dtmp = run_query(s_interv, con, verbose=True).dropna(axis=1)
-            print(dtmp.shape)
+            dtmp = run_query(s_interv, con, verbose=1).dropna(axis=1)
             if dtmp.shape[1] > 0 and dtmp.shape[0] > 0:
                 all_signames = {s: [s] for s in dtmp.columns if s.startswith("hf__")}
                 dtmp = dtmp[list(all_signames.keys())].copy()
                 dtmp = dtmp.applymap(partial(signal_decomp, Ts=Ts, subsample=subsample))
+
                 for c, dd in zip(dtmp.columns, dtmp.values[0]):
                     dd.columns = ["date", c]
-                print(dtmp.shape)
+
                 if dtmp.shape[1] > 0 and dtmp.shape[0] > 0:
                     dtmp = pd.concat(dtmp.values[0], axis=0).set_index("date")
                     D.append(dtmp)
@@ -225,43 +226,69 @@ def get_hf_data(the_intervals, Ts=None, subsample=True):
     return dfmonhf#, {s: [s] for s in dfmonhf.columns}
 
 
+def get_tk_data(ids__uid, engine):
+    with engine.connect() as con:
+        dftk = pd.read_sql(
+            "select * from takecare where ids__uid =\'{}\'".format(ids__uid),
+            con)
+    dftk.dropna(how='all', axis=1, inplace=True)
+    pidprint("Takecare:", dftk.shape)
+
+    all_evt = sum(dftk[[s for s in dftk.columns if s.startswith("tkevt__")]].values.tolist(), [])
+    all_evt = [sum([ss.split("@") for ss in s.split("___")], []) for s in all_evt if not (s is None)]
+
+    dftk = [[l[0], pd.to_datetime([l[1]])] for l in all_evt]
+    pidprint("Takecare events:", len(dftk))
+    return dftk
+
+
+def get_lf_data(the_intervals, engine, Ts="10T", disp_all_available=False):
+    s_interv = set_lf_query(the_intervals)
+
+    dfmonitor = run_query(s_interv, engine, verbose=1)
+
+    if disp_all_available:
+        all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}
+        dfmon = get_signals(dfmonitor, signames=all_signames, Ts=Ts)
+        sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
+    else:
+        dfmon = get_signals(dfmonitor, signames=valid_signames, Ts=Ts)
+        sig_colors = grouped_sig_colors
+    return dfmon, sig_colors
+
+
+def set_lf_query(the_intervals):
+    all_intervals = ", ".join(the_intervals)
+    return "select * from monitorlf where ids__interval in ({})".format(all_intervals)
+
+
 def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False, opts_signals=None):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
         the_intervals = list(map(lambda ss: "'" + ss + "'", pd.read_sql(s_uid, con).values.reshape(-1).tolist()))
-
-    all_intervals = ", ".join(the_intervals)
-    s_interv = "select * from monitorlf where ids__interval in ({})".format(all_intervals)
+    if len(the_intervals) == 0:
+        return None
+    s_interv = set_lf_query(the_intervals)
 
     thehash_id = gethash(s_uid + s_interv + str(opts_signals))
 
     cache_fname = os.path.join(cache_root, thehash_id + "_monitor.pkl")
+
     Ts = "10T"
+    subsample = pd.Timedelta(1, "s")
 
     pidprint(cache_fname)
+
     if (not os.path.isfile(cache_fname)) or (force_redraw):
+        disp_all_available = "available_lf" in opts_signals
 
-        with engine.connect() as con:
-            dfmonitor = pd.read_sql(s_interv, con)
+        dfmon, sig_colors = get_lf_data(the_intervals, engine, Ts=Ts, disp_all_available=disp_all_available)
 
-        pidprint("Downloaded:...", dfmonitor.shape)
-        disp_all_available = False
-        get_hf=False
-        Ts="10T"
-        subsample=pd.Timedelta(1, "s")
-        if "available_lf" in opts_signals:
-            disp_all_available=True
-            all_signames = {k: [k] for k in dfmonitor.columns if k.startswith("lf__")}
-            dfmon = get_signals(dfmonitor, signames=all_signames, Ts=Ts)
-            sig_colors = {k: indiv_sig_colors[k] for i, k in enumerate(all_signames.keys())}
-        else:
-            dfmon = get_signals(dfmonitor, signames=valid_signames, Ts=Ts)
-            sig_colors = grouped_sig_colors
+        get_hf = "waveform" in opts_signals
 
-        if "waveform" in opts_signals:
-            get_hf = True
-            dfmonhf = get_hf_data(the_intervals, Ts=Ts, subsample=subsample)
+        if get_hf:
+            dfmonhf = get_hf_data(the_intervals, engine, Ts=Ts, subsample=subsample)
 
             # Rescaling
             dfmonhf = (dfmonhf - dfmonhf.min()) / (dfmonhf.max() - dfmonhf.min()) / dfmonhf.shape[1] + 1 / \
@@ -270,19 +297,8 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
             pidprint("Mondata:", dfmonhf.shape,
                      ", ", round(dfmonhf.memory_usage(deep=True).sum()/1024/1024, 2), "MB")
 
-        with engine.connect() as con:
-            dftk = pd.read_sql(
-                "select * from takecare where ids__uid =\'{}\'".format(ids__uid),
-                con)
-        dftk.dropna(how='all', axis=1, inplace=True)
-        pidprint("Takecare:", dftk.shape)
+        dftk = get_tk_data(ids__uid, engine)
 
-        all_evt = sum(dftk[[s for s in dftk.columns if s.startswith("tkevt__")]].values.tolist(), [])
-        all_evt = [sum([ss.split("@") for ss in s.split("___")], []) for s in all_evt if not (s is None)]
-
-        dftk = [[l[0], pd.to_datetime([l[1]])] for l in all_evt]
-
-        pidprint("Takecare events:", len(dftk))
         pidprint("Plot...")
 
         lgd = []
@@ -304,32 +320,33 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
         # f19d8d014f398a43679b44ec736b4adeda36945890c3444e66a6f4d9afe7de7c
 
         for l in dftk:
-            thecase = not (re.compile(event_d["sepsis"]).match(l[0]) is None)
+            thecase_sepsis = not (re.compile(event_d["sepsis"]).match(l[0]) is None)
 
-            print(l[0], thecase)
+            print(l[0], thecase_sepsis)
 
-            c = "darkred" if thecase else "black"
-            thesize = 6 if thecase else 1
+            c = "darkred" if thecase_sepsis else "black"
+            thesize = 6 if thecase_sepsis else 1
 
             the_plot_data += [go.Scattergl(x=[l[1][0]]*10, y=np.linspace(0, 1, 10).tolist(),
                                          hovertemplate="{}<br>{}<br>{}".format(*l[0].replace("tkevt__", "").split("/")),
                                          mode='lines', line=dict(width=thesize, color=c), showlegend=False)]
 
-        the_plot_data += [go.Scattergl(x=dfmon.index,
-                                   y=((dfmon[k] - dfmon.min().min()) / (dfmon.max().max() - dfmon.min().min()) * scale),
-                                    hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
-                                   name=k,
-                                     showlegend= not disp_all_available,
-                                     line=dict(width=3, color=sig_colors[k])) for k in dfmon.columns]
+        the_plot_data += [go.Scattergl( x=dfmon.index,
+                                        y=((dfmon[k] - dfmon.min().min()) / (dfmon.max().max() - dfmon.min().min()) * scale),
+                                        hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
+                                        name=k,
+                                        showlegend=not disp_all_available,
+                                        line=dict(width=3, color=sig_colors[k])) for k in dfmon.columns]
+
         if get_hf:
-            the_plot_data += [go.Scattergl(   x=dfmonhf.index,
-                                            y=dfmonhf[k],
-                                            hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
-                                            mode='lines+markers',
-                                            name=k,
-                                            showlegend= not disp_all_available,
-                                            marker=dict(color=indiv_hfsig_colors[k],),
-                                            line=dict(width=3, color=indiv_hfsig_colors[k])) for k in dfmonhf.columns]
+            the_plot_data += [go.Scattergl(x=dfmonhf.index,
+                                           y=dfmonhf[k],
+                                           hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
+                                           mode='lines+markers',
+                                           name=k,
+                                           showlegend=not disp_all_available,
+                                           marker=dict(color=indiv_hfsig_colors[k],),
+                                           line=dict(width=3, color=indiv_hfsig_colors[k])) for k in dfmonhf.columns]
 
         fig = go.Figure(the_plot_data, dict(title="monitorLF for {}".format(ids__uid)))
 
@@ -343,7 +360,6 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
             fig = pkl.load(fp)
     fig.update_layout(template="none")
     return fig
-
 
 
 def read_salt(fname: str) -> str:
@@ -543,14 +559,25 @@ def plot_patient(plot_button, patid_, opts_signals):
     if plot_button is None:
         raise PreventUpdate
 
-    patid = patid_.strip(";")
-    print(patid.split(";"))
+    thesep = " " if not (";" in patid_) else ";"
 
-    if all(is_patid(p) for p in patid.split(";")):
-        Figs = [get_monitor_visual(ids__uid, engine, cache_root="cache", opts_signals=opts_signals) for ids__uid in patid.split(";")]
-        return sum([[html.P(ids__uid), dcc.Graph(figure=fig, style={"margin-top": "50px"})] for ids__uid,fig in zip(patid.split(";"), Figs)],[])
+    patid = patid_.strip(thesep)
+    print(patid.split(thesep))
+
+    if all(is_patid(p) for p in patid.split(thesep)):
+        Figs = [get_monitor_visual(ids__uid, engine, cache_root="cache", opts_signals=opts_signals) for ids__uid in patid.split(thesep)]
+        return sum([[html.P(ids__uid), make_fig(fig)] for ids__uid, fig in zip(patid.split(thesep), Figs)], [])
     else:
         return None
+
+
+def make_fig(fig):
+    if fig is None:
+        out = html.P("[error] No data were found.")
+    else:
+        out = dcc.Graph(figure=fig, style={"margin-top": "50px"})
+    return out
+
 
 # 71f3f1ab2f42253f2fe36886720ef5353a2fe84244dd19c031dc4f4b1a189700
 thecase = "case when ({} notnull) then True else NULL end as {}"

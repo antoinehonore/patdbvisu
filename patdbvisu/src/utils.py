@@ -1,16 +1,23 @@
 from datetime import datetime
 import os
-from sqlalchemy import create_engine
 import sys
 import pandas as pd
-from .styles import style_tbl
 import json
 from dash import dcc, html
 from dash import dash_table as dt
 
-import base64
-import zlib
-from io import StringIO
+# Overwrting some CSS default styles
+style_tbl = dict(
+    filter_action="native",
+    sort_action="native",
+    sort_mode="multi",
+    style_data={'color': 'black', 'backgroundColor': 'white'},
+    style_data_conditional=[{'if': {'row_index': 'odd'}, 'backgroundColor': 'rgb(220, 220, 220)', }],
+    style_header={'backgroundColor': 'rgb(210, 210, 210)', 'color': 'black', 'fontWeight': 'bold'}
+)
+
+thestyle = {"margin": "auto"}
+nav_bar_style = {}
 
 date_fmt = "%Y-%m-%d %H:%M:%S"
 
@@ -40,6 +47,7 @@ def better_lookin(ax, fontsize=20, lightmode=False):
 def gdate(date_fmt="%Y-%m-%d %H:%M:%S"):
     return datetime.now().strftime(date_fmt)
 
+
 def pidprint(*arg, flag="status"):
     """
     Behaves like builtin `print` function, but append runtime info before writing to stderr.
@@ -53,75 +61,12 @@ def pidprint(*arg, flag="status"):
     return
 
 
-def decompress_string(sz: str, verbose=False):
-    """
-    Decompress strings encoded in `patdb_tbox.psql.psql.compress_string`
-
-    Inputs
-
-    - sz:str, utf8 character strings (see `patdb_tbox.psql.psql.compress_string`)
-    - verbose: bool
-    """
-
-    if verbose:
-        pidprint("Get base64 from zstring...")
-    out = base64.b64decode(sz)
-
-    if verbose:
-        pidprint("Get decompressed bytes...")
-    out = zlib.decompress(out)
-
-    if verbose:
-        pidprint("Decode string")
-    return out.decode("utf8")
-
-def decompress_chunk(sz: str, verbose=False, nrows=None):
-    """
-    **Obselete** decompress a dataframe.
-    """
-    s = decompress_string(sz, verbose=verbose)
-
-    out = pd.DataFrame()
-    if s != "\n":
-        if verbose:
-            pidprint("str2DataFrame...")
-
-        out = pd.read_csv(StringIO(s), sep=";", nrows=nrows)
-
-        if verbose:
-            pidprint("Parse time columns...")
-        for k in ["timestamp", "context__tl", "date"]:
-            if k in out.columns:
-                out[k] = pd.to_datetime(out[k])
-    return out
-
 
 def get_dbcfg(fname):
     with open(fname, "rb") as fp:
         dbcfg = json.load(fp)
     return dbcfg
 
-def get_engine(username: str = "remotedbuser", root_folder: str = ".", nodename: str = "client", schema=None, dbname:str="remotedb", verbose=False):
-    """
-    Get a database `sqlalchemy.engine` object for the user `username`, using ssl certificates specific for 'nodenames' type machines.
-    For details about the database engine object see `sqlalchemy.create_engine`
-    """
-
-    passwd = read_passwd(username=username, root_folder=root_folder)
-    connect_args = {}
-    if username == "remotedbdata":
-        connect_args = {'sslrootcert': os.path.join(root_folder, "root.crt"),
-                        'sslcert': os.path.join(root_folder, "{}.crt".format(nodename)),
-                        'sslkey': os.path.join(root_folder, "{}.key".format(nodename))}
-
-    engine = create_engine('postgresql://{}:{}@127.0.0.1:5432/{}'.format(username, passwd,dbname),
-                           connect_args=connect_args)
-    with engine.connect() as con:
-        if verbose:
-            pidprint("Connection OK", flag="report")
-        else:
-            pass
-    return engine
 
 def gentbl(df, style_table=None):
     return dt.DataTable(id='table',
@@ -158,18 +103,9 @@ def get_colnames(k, con):
                    con)
     return list(map(lambda s: "\""+s+"\"", df["column_name"].values.tolist()))
 
+
 def get_latest_update(id, **kwargs):
     return html.Div([html.H3("Latest update: "), html.Div([html.P("-"), html.P("-")], id=id)], **kwargs)
-
-
-def read_passwd(username: str = "remotedbuser", root_folder: str = ".") -> str:
-    """
-    Read `username` password file from the `root_folder`.
-    """
-    with open(os.path.join(root_folder, "{}_dbfile.txt".format(username)), "r") as f:
-        s = f.read().strip()
-    return s
-
 
 
 def register_ids(themap, con):
@@ -181,6 +117,7 @@ def register_ids(themap, con):
             pidprint(k, "inserted.", flag="report")
         else:
             pidprint(k, "already found.", flag="report")
+
 
 def read_query_file(fname: str) -> str:
     """

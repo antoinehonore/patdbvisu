@@ -1,5 +1,4 @@
-from src.styles import thestyle, nav_bar_style
-from src.utils import get_latest_update, create_completion_dropdown
+from src.utils import thestyle,nav_bar_style, get_latest_update, create_completion_dropdown
 import socket
 from dash import dcc, html
 from dash_extensions import Download

@@ -192,7 +192,7 @@ def run_query(s: str, engine, verbose=0) -> pd.DataFrame:
     dl_time = (end_dl_time - start_dl_time).total_seconds()
     memusage_MB = df.memory_usage(index=True, deep=True).sum() / 1024 / 1024
 
-    if verbose>=1:
+    if verbose >= 1:
         pidprint("dl_time={} sec, volume={} MB, link speed={} MB/s".format(round(dl_time, 3), round(memusage_MB, 3),
                                                                            round(memusage_MB / dl_time, 3)),
                  flag="report")
@@ -222,8 +222,7 @@ def get_hf_data(the_intervals, engine, Ts=None, subsample=pd.Timedelta(1,"s")):
 
     dfmonhf = pd.concat(D, axis=0)
     dfmonhf[dfmonhf.columns] = dfmonhf[dfmonhf.columns].values.astype(np.float16)
-
-    return dfmonhf#, {s: [s] for s in dfmonhf.columns}
+    return dfmonhf #, {s: [s] for s in dfmonhf.columns}
 
 
 def get_tk_data(ids__uid, engine):

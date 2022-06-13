@@ -4,7 +4,7 @@ from datetime import datetime
 
 import pandas as pd
 import dash
-from dash import dcc, Input, Output, html
+from dash import dcc, Input, Output,State, html
 from dash.exceptions import PreventUpdate
 
 from io import StringIO
@@ -68,7 +68,6 @@ def update_check_lists(clickless, clickmore, checklist):
 
 from tableone import TableOne
 import pandas as pd
-from dash import dash_table as dt
 import numpy as np
 
 
@@ -86,8 +85,9 @@ Pollard TJ, Johnson AEW, Raffa JD, Mark RG (2018). tableone: An open source
     Input(component_id="popstudy-updatechecklists-button", component_property='n_clicks'),
     Input(component_id="popstudy-checklists-div", component_property="children"),
     Input(component_id="popstudy-downloadchecklists-button", component_property='n_clicks'),
+    State(component_id="popstudy-datacollection", component_property='value'),
 )
-def update_checklist_test(n_clicks, checklists, dl_click):
+def update_checklist_test(n_clicks, checklists, dl_click, v_datacollection):
     ctx = dash.callback_context
 
     if not ctx.triggered:
@@ -102,11 +102,22 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     print("button pressed ", button_id)
 
     DF = []
-    assert(len(checklists) % n_field_per_pop == 0)
+    is_datacollection = "is_datacollection" in v_datacollection
+
+    if is_datacollection:
+        print(len(checklists))
+        assert((len(checklists)//n_field_per_pop) == 1)
+    else:
+        assert(len(checklists) % n_field_per_pop == 0)
+
+    print("rec", v_datacollection)
 
     QUERIES = []
+
     print(len(checklists)//n_field_per_pop)
-    grp_names=[]
+
+    grp_names = []
+
     for i in range(len(checklists)//n_field_per_pop):
         v = checklists[n_field_per_pop*i + 1]
         v_not = checklists[n_field_per_pop * i + 2]
@@ -128,22 +139,29 @@ def update_checklist_test(n_clicks, checklists, dl_click):
         grp_names.append(grp_name)
 
         with engine.connect() as con:
-            the_data_query = "select ov.*,vua.*, '{}' as \"group\" "\
+            if not is_datacollection:
+                the_data_query = "select ov.*, vua.*, '{}' as \"group\" "\
                             "from overview ov, view__uid_has vua "\
                             "where {} "\
                             "and vua.ids__uid=ov.ids__uid;".format(grp_name, pos_cond + " and " + neg_cond)
-
+            else:
+                the_data_query = "select mm.*, vua.*, '{}' as \"group\" " \
+                                 "from view__uid_has vua, monitor_meta mm " \
+                                 "where {} " \
+                                 "and not (mm.signame like \'%%AntEkt%%\') and mm.duration>0 "  \
+                                 "and mm.ids__uid = vua.ids__uid;".format(grp_name, pos_cond + " and " + neg_cond)
+            print(the_data_query)
             QUERIES.append(the_data_query[:-1])
 
             doverview = pd.read_sql(the_data_query, con)
 
-            # ids__uid should show up twice, remove the second occurence
-            cols = doverview.columns
-            icols = list(range(len(cols)))
-            second_uid = np.argwhere(np.array(cols) == "ids__uid").reshape(-1)[-1]
-
-            icols.pop(second_uid)
-            doverview = doverview.iloc[:, icols]
+            if not is_datacollection:
+                # ids__uid should show up twice, remove the second occurence
+                cols = doverview.columns
+                icols = list(range(len(cols)))
+                second_uid = np.argwhere(np.array(cols) == "ids__uid").reshape(-1)[-1]
+                icols.pop(second_uid)
+                doverview = doverview.iloc[:, icols]
 
         if doverview.empty:
             return [html.P("Population {} is empty...".format(i+1)), None, None]
@@ -155,59 +173,66 @@ def update_checklist_test(n_clicks, checklists, dl_click):
     if all([dd.empty for dd in DF]):
         raise PreventUpdate
 
-    ids_dict = {k: df["ids__uid"].values.tolist() for k, df in zip(grp_names, DF)}
-    ids_str_list = sum([[html.P(k), html.P(";".join(v))] for k, v in ids_dict.items()],[])
-
     dout = pd.concat(DF, axis=0)
 
     print(dout.memory_usage(deep=True))
 
-    outtxt = [html.P(full_query)] + [html.P()] + ids_str_list
+    outtxt = [html.P(full_query)]
+
+    if not is_datacollection:
+        ids_dict = {k: df["ids__uid"].values.tolist() for k, df in zip(grp_names, DF)}
+        ids_str_list = sum([[html.P(k), html.P(";".join(v))] for k, v in ids_dict.items()],[])
+        outtxt += [html.P()] + ids_str_list
 
     fname_stem = datetime.now().strftime("%Y-%m-%d_%H%M%S")
+
     if button_id == "popstudy-downloadchecklists-button":
         out = (html.P("Download"),
                dcc.send_data_frame(dout.to_excel, filename="{}_demographics.xlsx".format(fname_stem)),
                outtxt)
     else:
-        if len(DF) == 1:
-            out = [html.P("Need at least 2 populations, click on 'more' to add one"), None, outtxt]
-
+        if is_datacollection:
+            return [html.P("You can only use the download function when Data collection is activated."), None, None]
         else:
-            columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "demos__age", "group"]
-            groupby = ['group']
-            nonnormal = None
-            categorical = ["sex"]
-            labels = {'death': 'mortality'}
-            dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_", " ") if isinstance(x, str) else x)
+            if len(DF) == 1:
+                out = [html.P("Need at least 2 populations, click on 'more' to add one"), None, outtxt]
 
-            mytable = TableOne(dout.reset_index()[columns],
-                               columns=columns,
-                               categorical=categorical,
-                               groupby=groupby,
-                               nonnormal=nonnormal,
-                               rename=labels,
-                               pval=True
-                               )
+            else:
+                columns = ["sex", "bw", "ga_w", "apgar_1", "apgar_5", "apgar_10", "demos__age", "group"]
+                groupby = ['group']
+                nonnormal = None
+                categorical = ["sex"]
+                labels = {'death': 'mortality'}
+                dout[groupby] = dout[groupby].applymap(lambda x: x.replace("_", " ") if isinstance(x, str) else x)
 
-            ddisp = pd.read_csv(StringIO(mytable.to_csv()))
+                mytable = TableOne(dout.reset_index()[columns],
+                                   columns=columns,
+                                   categorical=categorical,
+                                   groupby=groupby,
+                                   nonnormal=nonnormal,
+                                   rename=labels,
+                                   pval=True
+                                   )
 
-            ddisp.fillna("", inplace=True)
+                ddisp = pd.read_csv(StringIO(mytable.to_csv()))
 
-            out = ([gentbl_raw(ddisp,
-                                id="popstudy-output",
-                                style_cell={'border': '1px solid grey',
-                                           'textAlign': 'center',
-                                           'minWidth': "20px",
-                                           'maxWidth': "100px"},
-                                style_header={'display': 'none'},
-                                style_data={
-                                   'whiteSpace': 'normal',
-                                   'width': 'auto',
-                                   'height':'auto'
-                                }, fill_width=False
-                               )
-                    ],
-                   None,
-                   outtxt)
+                ddisp.fillna("", inplace=True)
+
+                out = ([gentbl_raw(ddisp,
+                                    id="popstudy-output",
+                                    style_cell={'border': '1px solid grey',
+                                               'textAlign': 'center',
+                                               'minWidth': "20px",
+                                               'maxWidth': "100px"},
+                                    style_header={'display': 'none'},
+                                    style_data={
+                                       'whiteSpace': 'normal',
+                                       'width': 'auto',
+                                       'height':'auto'
+                                    }, fill_width=False
+                                   )
+                        ],
+                       None,
+                       outtxt)
+
     return out

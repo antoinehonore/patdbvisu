@@ -37,11 +37,12 @@ navbar = html.Div(children=[
 ],
     style=nav_bar_style)
 
-main_layout=html.Div([
+main_layout = html.Div([
     separator,
     navbar,
     separator,
     html.H2("Population study", style={'text-align': 'left'}),
+    dcc.Checklist(options=[{"label": 'Data collection', "value": "is_datacollection"}], value=[], id="popstudy-datacollection"),
     html.Div([
         html.Button('More', id='popstudy-morechecklist-button'),
         html.Button('Less', id='popstudy-lesschecklist-button'),

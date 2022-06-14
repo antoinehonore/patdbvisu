@@ -1,5 +1,5 @@
 from src.utils import all_data_tables2, \
-    valid_signames,better_lookin, run_select_queries, gentbl_raw,\
+    valid_signames, better_lookin, run_select_queries, gentbl_raw,\
     all_data_tables, ref_cols, get_update_status, \
     pidprint, get_colnames
 
@@ -121,7 +121,7 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
         get_hf = "waveform" in opts_signals
 
         if get_hf:
-            dfmonhf = get_hf_data(the_intervals, engine, Ts=Ts, subsample=subsample)
+            dfmonhf = get_hf_data(the_intervals, engine, Ts=Ts, subsample=subsample,verbose=2)
 
             # Rescaling
             dfmonhf = (dfmonhf - dfmonhf.min()) / (dfmonhf.max() - dfmonhf.min()) / dfmonhf.shape[1] + 1 / \

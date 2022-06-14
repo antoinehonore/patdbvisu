@@ -2,7 +2,6 @@ from datetime import datetime
 import os
 import sys
 import pandas as pd
-import json
 from dash import dcc, html
 from dash import dash_table as dt
 
@@ -60,12 +59,6 @@ def pidprint(*arg, flag="status"):
     print("[{}] [{}] [{}]".format(os.getpid(), datetime.now(), flag), " ".join(map(str, arg)), file=sys.stderr)
     return
 
-
-
-def get_dbcfg(fname):
-    with open(fname, "rb") as fp:
-        dbcfg = json.load(fp)
-    return dbcfg
 
 
 def gentbl(df, style_table=None):

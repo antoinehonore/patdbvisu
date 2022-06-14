@@ -1,12 +1,11 @@
-from src.utils import thestyle,nav_bar_style, get_latest_update, create_completion_dropdown
+from src.utils import thestyle, nav_bar_style, get_latest_update, create_completion_dropdown
 import socket
 from dash import dcc, html
-from dash_extensions import Download
-
 from startup import app, server
 from src.dbstatus import update_output,update_completion_data,showhide_db_details
 from src.popstudy import update_check_lists,update_checklist_test
 from src.patdisp import cb_render,plot_patient, display_patient_interv
+
 separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
 
 
@@ -47,7 +46,7 @@ main_layout = html.Div([
         html.Button('Less', id='popstudy-lesschecklist-button'),
         html.Button('Stats', id='popstudy-updatechecklists-button'),
         html.Div([html.Button("Download raw", id="popstudy-downloadchecklists-button"),
-                  Download(id="popstudy-downloadchecklists")]
+                  dcc.Download(id="popstudy-downloadchecklists")]
                  ),
         html.Div(id="popstudy-outputtxt-div")
     ], style={'display': 'flex', 'flex-direction': 'row'}),

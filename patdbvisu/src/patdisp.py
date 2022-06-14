@@ -1,18 +1,17 @@
 from src.utils import all_data_tables2, \
     valid_signames,better_lookin, run_select_queries, gentbl_raw,\
-    all_data_tables, ref_cols, get_dbcfg, get_update_status, \
+    all_data_tables, ref_cols, get_update_status, \
     pidprint, get_colnames
 
 from startup import app, engine, all_cols
 from src.events import d as event_d
-from src.utils_db import get_hf_data, set_lf_query, get_signals, get_tk_data,run_query,get_engine
+from utils_db.utils_db import get_hf_data, set_lf_query, get_signals, get_tk_data,run_query,get_engine,get_dbcfg
 import pandas as pd
 import dash
 from dash import html, Input, Output, State, dcc
 from dash.exceptions import PreventUpdate
 import numpy as np
 import pickle as pkl
-import plotly.express as px
 import plotly.graph_objects as go
 import os
 

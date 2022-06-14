@@ -1,13 +1,15 @@
 from startup import app, engine
 from src.utils import gentbl_raw
 from datetime import datetime
-
-import pandas as pd
 import dash
-from dash import dcc, Input, Output,State, html
+from dash import dcc, Input, Output, State, html
 from dash.exceptions import PreventUpdate
-
 from io import StringIO
+from tableone import TableOne
+import pandas as pd
+import numpy as np
+
+
 n_field_per_pop = 3
 
 
@@ -65,10 +67,6 @@ def update_check_lists(clickless, clickmore, checklist):
                             new_checklist(len(checklist)//n_field_per_pop + 1, init_val=init_val),
                             new_checklist("neg-{}".format(len(checklist)//n_field_per_pop + 1), init_val=init_val_neg, placeholder=" DON'T ")
                             ]
-
-from tableone import TableOne
-import pandas as pd
-import numpy as np
 
 
 

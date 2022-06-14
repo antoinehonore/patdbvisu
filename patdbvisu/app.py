@@ -2,12 +2,12 @@ from src.utils import thestyle, nav_bar_style, get_latest_update, create_complet
 import socket
 from dash import dcc, html
 from startup import app, server
-from src.dbstatus import update_output,update_completion_data,showhide_db_details
-from src.popstudy import update_check_lists,update_checklist_test
-from src.patdisp import cb_render,plot_patient, display_patient_interv
+from src.dbstatus import update_output, update_completion_data, showhide_db_details
+from src.popstudy import update_check_lists, update_checklist_test
+from src.patdisp import cb_render, plot_patient, display_patient_interv
+
 
 separator = html.Img(src=app.get_asset_url('line.png'), style={"width": "100%", "height": "5px"})
-
 
 navbar = html.Div(children=[
     html.Div([
@@ -32,9 +32,7 @@ navbar = html.Div(children=[
                                                    html.P("-", id="completion-result")]),
         html.Div(id="div-db-details"),
     ])
-],
-    style=nav_bar_style)
-
+], style=nav_bar_style)
 main_layout = html.Div([
     separator,
     navbar,
@@ -87,6 +85,7 @@ main_layout = html.Div([
     separator,
     html.Div([html.Br()] * 10)
 ])
+
 app.layout = main_layout
 
 if __name__ == "__main__":

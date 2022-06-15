@@ -4,7 +4,8 @@ import argparse
 import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
-from src.utils import date_fmt, get_engine, get_dbcfg, pidprint
+from src.utils import date_fmt, pidprint
+from utils_db.utils_db import get_engine, get_dbcfg
 import sys
 import os
 import hashlib

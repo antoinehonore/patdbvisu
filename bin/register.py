@@ -38,14 +38,16 @@ def read_map(fname):
     d["ID"] = rootdir + "_pat" + d["ID"]
     return d.set_index("ID")
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", type=str)
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
     fname = args.i
-    #themap = read_map(fname)
     cfg_root = "cfg"
+
     if not os.path.isfile(fname):
         pidprint(fname, "does not exist", flag="error")
         sys.exit(1)
@@ -53,9 +55,11 @@ if __name__ == "__main__":
     if fname.endswith(".csv"):
         df = pd.read_csv(fname, sep=";")
         ext = ".csv"
+
     elif fname.endswith(".xlsx"):
         df = pd.read_excel(fname)
         ext = ".xlsx"
+
     elif os.path.basename(fname) == "PatientsMapping.txt.gpg":
         df = read_map(fname)
         ext = ".txt.gpg"
@@ -75,7 +79,6 @@ if __name__ == "__main__":
                 pidprint(
                     "Some entries in the {} column are not formatted as PNs:\n{}".format(k, df[k][not_pns]),
                     flag="error")
-                # sys.exit(1)
 
             new_entries = {fhash(s): s for s in np.unique(df.loc[~not_pns, k].values)}
 

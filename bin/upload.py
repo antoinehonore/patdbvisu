@@ -4,7 +4,8 @@ import pandas as pd
 from parse import parse
 import os
 from src.utils import gdate, date_fmt, pidprint
-from utils_db.utils_db import get_engine,get_dbcfg
+from utils_db.utils_db import get_engine, get_dbcfg
+
 
 def get_primary_keys(tbl_name, engine, thedefault="ids__interval"):
     query_s="SELECT c.column_name, c.data_type FROM information_schema.table_constraints tc \
@@ -130,9 +131,6 @@ def fmt_sqldtype(x):
     else:
         return "NULL"
 
-
-from datetime import datetime
-from datetime import datetime
 import sys
 
 parser = argparse.ArgumentParser()

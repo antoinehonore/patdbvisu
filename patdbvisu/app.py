@@ -59,6 +59,7 @@ main_layout = html.Div([
         dcc.Input(id="patdisp-input-patid", placeholder="Write Patient ID", style=dict(width="450px")),
         html.Button('Search', id='patdisp-search-button'),
         html.Button('Convert', id='patdisp-convert-button'),
+        html.Button('Clear', id='patdisp-clear-button'),
         html.Div([html.Button('Plot', id='patdisp-plot-button'),
                   dcc.Checklist(options=[{"label": 'All available LF', "value": "available_lf"},
                                          {"label": 'All available HF', "value": "waveform"}], value=[],

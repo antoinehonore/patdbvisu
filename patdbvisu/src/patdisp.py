@@ -305,11 +305,12 @@ def search_id(token, cfg_root="cfg"):
     Output("patdisp-interv-dropdown", "value"),
     Input("patdisp-search-button", "n_clicks"),
     Input("patdisp-convert-button", "n_clicks"),
+    Input('patdisp-clear-button', "n_clicks"),
     Input("patdisp-input-patid", "value")
 )
-def cb_render(n_clicks, n_click_cv, patid):
+def cb_render(n_clicks, n_click_cv, n_clicks_clear, patid):
     empty_out = [[], []]
-    if (n_clicks is None) and (n_click_cv is None):
+    if (n_clicks is None) and (n_click_cv is None) and (n_clicks_clear is None):
         raise PreventUpdate
     else:
         ctx = dash.callback_context
@@ -321,6 +322,9 @@ def cb_render(n_clicks, n_click_cv, patid):
 
         if button_id == "patdisp-input-patid":
             raise PreventUpdate
+
+        if button_id == "patdisp-clear-button":
+            return [None, html.P(""), [], []]
 
         start_ = datetime.now()
         out = [html.P("Wrong input format (neither a valid PN nor a valid ids__uid): {}".format(patid)), [], []]

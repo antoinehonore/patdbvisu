@@ -1,10 +1,12 @@
 import argparse
 import os
 import subprocess
-from patdbvisu.src.utils import register_ids, pidprint, get_dbcfg,get_engine
+from patdbvisu.src.utils import register_ids
+from utils_db.utils_db import get_dbcfg, get_engine, pidprint
 from patdbvisu.src.patdisp import is_pn, init_hash_fun, format_pn
-
 import sys
+import numpy as np
+import pandas as pd
 
 
 def decrypt_file(fname):
@@ -34,27 +36,10 @@ def read_map(fname):
     d = pd.DataFrame(data=lines[1:], columns=lines[0])
     rootdir = os.path.basename(os.path.dirname(fname))
     d["ID"] = rootdir + "_pat" + d["ID"]
-    #fhash = init_hash_fun()
-    #f = lambda s: fhash(format_pn(s.strip()))
-    #format_pn("9302013231")
-    #d["Personnummer"] = d["Personnummer"].astype(str).apply(f)
     return d.set_index("ID")
-
-
-#def read_pnuidmap(fname):
-#    if os.path.isfile(fname+".gpg"):
-#        c = decrypt_file(fname+".gpg").strip()
-#        out = {ll[0]: ll[1] for ll in [l.split(":") for l in c.split("\n")]}
-#    else:
-#        out = {}
-#    return out
-
-
-import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", type=str)
-import numpy as np
 
 if __name__ == "__main__":
     args = parser.parse_args()

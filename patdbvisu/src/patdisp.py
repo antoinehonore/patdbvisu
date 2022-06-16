@@ -74,28 +74,28 @@ resp_colors = {
     "respirator_sipap__biphasic__tr": "blue",
     "respirator_sipap__biphasic__trapn": "blue",
     "respirator_sipap__biphasic_duop": "blue",
-    "respirator_sippv": "red",
+    "respirator_sippv": "orange",
     "respirator_standby": "black",
     "respirator_unknown": "black",
     "respirator_o2__therapy": "green",
     "respirator_bilevel":"orange",
     "respirator_advance__cpap_apne": "darkgreen",
-    "respirator_tk":"orange",
+    "respirator_tk": "orange",
     "respirator_advance__cpap__trpa":"darkgreen",
     "respirator_pc_ps_auto_no__pat__tr":"orange",
     "respirator_pc_ps_auto_pat__trigg":"orange",
     "respirator_ps_cpap": "darkgreen",
-    "respirator_ippv_imv":"orange",
+    "respirator_ippv_imv": "orange",
     "respirator_simv_neonatology_":"orange",
     "respirator_tu_cpap": "darkgreen",
     "respirator_ncpap": "darkgreen",
-    "respirator_hogt__flode":"darkgreen",
-    "respirator_inget":"black",
+    "respirator_hogt__flode": "darkgreen",
+    "respirator_inget": "black",
     "respirator_nasal__cpapippv_imv": "darkgreen",
-    "respirator_21":"black",
+    "respirator_21": "black",
     "respirator_nasal_cpap": "darkgreen",
     "respirator_vkts": "orange",
-    "respirator_bilevelsippv": "red"
+    "respirator_bilevelsippv": "orange"
 }
 
 
@@ -144,7 +144,7 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
     cache_fname = os.path.join(cache_root, thehash_id + "_monitor.pkl")
 
     Ts = "10T"
-    subsample = pd.Timedelta(1, "s")
+    subsample = pd.Timedelta(2, "s")
 
     pidprint(cache_fname)
 
@@ -165,7 +165,7 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
 
             for iresp, k in enumerate(dfresp.columns):
                 resp_plot_data.append(go.Scattergl(x=dfresp.index,
-                                                   y=dfresp[k]-1,
+                                                   y=dfresp[k]-1.5,
                                                    hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: " + k.replace("respirator_",""),
                                                    mode='markers',
                                                    name=k.replace("respirator_", ""),

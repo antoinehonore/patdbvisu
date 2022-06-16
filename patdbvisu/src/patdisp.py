@@ -130,13 +130,16 @@ def get_lf_data(the_intervals, engine, Ts="10T", disp_all_available=False):
 
 
 def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
-                       force_redraw=False, opts_signals=None,verbose=2):
-    s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
+                       force_redraw=False, opts_signals=None, verbose=2):
+
+    s_uid = "select ids__interval from view__interv_all where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
         the_intervals = list(map(lambda ss: "'" + ss + "'", pd.read_sql(s_uid, con).values.reshape(-1).tolist()))
+
     if len(the_intervals) == 0:
         return None
+
     s_interv = set_lf_query(the_intervals)
 
     thehash_id = gethash(s_uid + str(opts_signals))

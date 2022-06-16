@@ -62,7 +62,8 @@ main_layout = html.Div([
         html.Button('Clear', id='patdisp-clear-button'),
         html.Div([html.Button('Plot', id='patdisp-plot-button'),
                   dcc.Checklist(options=[{"label": 'All available LF', "value": "available_lf"},
-                                         {"label": 'All available HF', "value": "waveform"}], value=[],
+                                         {"label": 'All available HF', "value": "waveform"},
+                                         {"label": 'Respirator', "value": "respirator"}], value=[],
                                 id="patdisp-plot-checklist")]
                  , className="row"),
         html.P(id="patdisp-convert-disp"),

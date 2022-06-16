@@ -5,7 +5,8 @@ from src.utils import all_data_tables2, \
 
 from startup import app, engine, all_cols
 from src.events import d as event_d
-from utils_db.utils_db import get_hf_data, set_lf_query, get_signals, get_tk_data,run_query,get_engine,get_dbcfg
+from utils_db.utils_db import get_hf_data, set_lf_query, get_signals,\
+    get_tk_data,run_query,get_engine,get_dbcfg, get_resp_data
 import pandas as pd
 import dash
 from dash import html, Input, Output, State, dcc
@@ -65,6 +66,39 @@ ALL_COLORS = ["aliceblue", "antiquewhite", "aqua", "aquamarine", "azure",
 
 grouped_sig_colors = {"btb": "red", "rf": "green", "spo2": "blue"}
 
+resp_colors = {
+    "respirator_cpap": "darkgreen",
+    "respirator_fabian":"black",
+    "respirator_hfo":"red",
+    "respirator_nasal__cpap": "darkgreen",
+    "respirator_sipap__biphasic__tr": "blue",
+    "respirator_sipap__biphasic__trapn": "blue",
+    "respirator_sipap__biphasic_duop": "blue",
+    "respirator_sippv": "red",
+    "respirator_standby": "black",
+    "respirator_unknown": "black",
+    "respirator_o2__therapy": "green",
+    "respirator_bilevel":"orange",
+    "respirator_advance__cpap_apne": "darkgreen",
+    "respirator_tk":"orange",
+    "respirator_advance__cpap__trpa":"darkgreen",
+    "respirator_pc_ps_auto_no__pat__tr":"orange",
+    "respirator_pc_ps_auto_pat__trigg":"orange",
+    "respirator_ps_cpap": "darkgreen",
+    "respirator_ippv_imv":"orange",
+    "respirator_simv_neonatology_":"orange",
+    "respirator_tu_cpap": "darkgreen",
+    "respirator_ncpap": "darkgreen",
+    "respirator_hogt__flode":"darkgreen",
+    "respirator_inget":"black",
+    "respirator_nasal__cpapippv_imv": "darkgreen",
+    "respirator_21":"black",
+    "respirator_nasal_cpap": "darkgreen",
+    "respirator_vkts": "orange",
+    "respirator_bilevelsippv": "red"
+}
+
+
 all_the_monitorlf_cols = [s.strip("\"") for s in all_cols["monitorlf"] if s.strip("\"").startswith("lf__")]
 indiv_sig_colors = {signame: colorname if len([grouped_sig_colors[k] for k,v in valid_signames.items() if signame in v])==0
                                         else [grouped_sig_colors[k] for k,v in valid_signames.items() if signame in v][0]
@@ -95,7 +129,8 @@ def get_lf_data(the_intervals, engine, Ts="10T", disp_all_available=False):
     return dfmon, sig_colors
 
 
-def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redraw=False, opts_signals=None):
+def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
+                       force_redraw=False, opts_signals=None,verbose=2):
     s_uid = "select ids__interval from view__monitorlf_has_onesignal vmha where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
@@ -104,7 +139,7 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
         return None
     s_interv = set_lf_query(the_intervals)
 
-    thehash_id = gethash(s_uid + s_interv + str(opts_signals))
+    thehash_id = gethash(s_uid + str(opts_signals))
 
     cache_fname = os.path.join(cache_root, thehash_id + "_monitor.pkl")
 
@@ -114,14 +149,33 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
     pidprint(cache_fname)
 
     if (not os.path.isfile(cache_fname)) or (force_redraw):
+        pidprint("File was not found in cache ...")
+
         disp_all_available = "available_lf" in opts_signals
+
+        resp_plot_data = []
 
         dfmon, sig_colors = get_lf_data(the_intervals, engine, Ts=Ts, disp_all_available=disp_all_available)
 
         get_hf = "waveform" in opts_signals
+        get_resp = "respirator" in opts_signals
+
+        if get_resp:
+            dfresp = get_resp_data(ids__uid, engine, verbose=verbose)
+
+            for iresp, k in enumerate(dfresp.columns):
+                resp_plot_data.append(go.Scattergl(x=dfresp.index,
+                                                   y=dfresp[k]-1,
+                                                   hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: " + k.replace("respirator_",""),
+                                                   mode='markers',
+                                                   name=k.replace("respirator_", ""),
+                                                   showlegend=True,
+                                                   marker=dict(color=resp_colors[k])
+                                                   )
+                                      )
 
         if get_hf:
-            dfmonhf = get_hf_data(the_intervals, engine, Ts=Ts, subsample=subsample,verbose=2)
+            dfmonhf = get_hf_data(the_intervals, engine, Ts=Ts, subsample=subsample, verbose=verbose)
 
             # Rescaling
             dfmonhf = (dfmonhf - dfmonhf.min()) / (dfmonhf.max() - dfmonhf.min()) / dfmonhf.shape[1] + 1 / \
@@ -181,17 +235,27 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None, force_redra
                                            marker=dict(color=indiv_hfsig_colors[k],),
                                            line=dict(width=3, color=indiv_hfsig_colors[k])) for k in dfmonhf.columns]
 
+        the_plot_data += resp_plot_data
+        if verbose >= 1:
+            pidprint("Generate plot...")
         fig = go.Figure(the_plot_data, dict(title="monitorLF for {}".format(ids__uid)))
 
         lgd += ["spo2", "btb", "rf"]
-
+        if verbose >= 1:
+            pidprint("Save plot...")
         with open(cache_fname, "wb") as fp:
             pkl.dump(fig, fp)
 
     else:
+        if verbose >= 1:
+            pidprint("File was found in cache ...")
         with open(cache_fname, "rb") as fp:
             fig = pkl.load(fp)
     fig.update_layout(template="none")
+
+    if verbose >= 1:
+        pidprint("Done.")
+
     return fig
 
 
@@ -328,6 +392,7 @@ def cb_render(n_clicks, n_click_cv, n_clicks_clear, patid):
 
         start_ = datetime.now()
         out = [html.P("Wrong input format (neither a valid PN nor a valid ids__uid): {}".format(patid)), [], []]
+
         if is_patid(patid):
             if button_id == "patdisp-search-button":
                 with engine.connect() as con:
@@ -340,7 +405,7 @@ def cb_render(n_clicks, n_click_cv, n_clicks_clear, patid):
                     create_views_queries = {
                         k: "create or replace view patview_{}_{} as (select * from {} where ids__uid='{}');".format(k,
                                                                                                                     patid,
-                                                                                                                    k,
+                                                                                              k,
                                                                                                                     patid)
                         for k
                         in all_data_tables}

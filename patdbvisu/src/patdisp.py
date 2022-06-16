@@ -179,10 +179,14 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
 
         if get_hf:
             dfmonhf = get_hf_data(the_intervals, engine, Ts=Ts, subsample=subsample, verbose=verbose)
-
-            # Rescaling
-            dfmonhf = (dfmonhf - dfmonhf.min()) / (dfmonhf.max() - dfmonhf.min()) / dfmonhf.shape[1] + 1 / \
-                  dfmonhf.shape[1] * np.arange(dfmonhf.shape[1]).reshape(1, -1) +1
+            #pidprint("finished")
+            if verbose >= 2:
+                pidprint("dfmonhf.shape", dfmonhf.shape)
+                #pidprint("Range:",(dfmonhf.max() - dfmonhf.min()))
+            if dfmonhf.shape[0]>0:
+                # Rescaling
+                dfmonhf = (dfmonhf - dfmonhf.min()) / (dfmonhf.max() - dfmonhf.min()) / dfmonhf.shape[1] + 1 / \
+                      dfmonhf.shape[1] * np.arange(dfmonhf.shape[1]).reshape(1, -1) + 1
 
             pidprint("Mondata:", dfmonhf.shape,
                      ", ", round(dfmonhf.memory_usage(deep=True).sum()/1024/1024, 2), "MB")

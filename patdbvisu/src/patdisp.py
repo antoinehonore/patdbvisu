@@ -159,6 +159,10 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
         resp_plot_data = []
 
         dfmon, sig_colors = get_lf_data(the_intervals, engine, Ts=Ts, disp_all_available=disp_all_available)
+        if dfmon.shape[0] > 0:
+            # Rescaling
+            dfmon = (dfmon - dfmon.min()) / (dfmon.max() - dfmon.min()) / dfmon.shape[1] + 1 / \
+                      dfmon.shape[1] * np.arange(dfmon.shape[1]).reshape(1, -1)
 
         get_hf = "waveform" in opts_signals
         get_resp = "respirator" in opts_signals
@@ -221,12 +225,12 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
             c = "darkred" if thecase_sepsis else "black"
             thesize = 6 if thecase_sepsis else 1
 
-            the_plot_data += [go.Scattergl(x=[l[1][0]]*10, y=np.linspace(0, 1, 10).tolist(),
+            the_plot_data += [go.Scattergl(x=[l[1][0]]*10, y=np.linspace(-0.5, 0, 10).tolist(),
                                          hovertemplate="{}<br>{}<br>{}".format(*l[0].replace("tkevt__", "").split("/")),
                                          mode='lines', line=dict(width=thesize, color=c), showlegend=False)]
 
         the_plot_data += [go.Scattergl( x=dfmon.index,
-                                        y=((dfmon[k] - dfmon.min().min()) / (dfmon.max().max() - dfmon.min().min()) * scale),
+                                        y=dfmon[k],
                                         hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: "+k,
                                         name=k,
                                         showlegend=not disp_all_available,
@@ -351,7 +355,7 @@ def is_patid(s):
 
 
 def is_pn(s):
-    return (len(str(s)) == 13) and (not (re_is_pn.fullmatch(str(s))is None))
+    return (len(str(s)) == 13) and (not (re_is_pn.fullmatch(str(s)) is None))
 
 
 def prep_token(s):

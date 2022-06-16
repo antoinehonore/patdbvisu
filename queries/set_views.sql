@@ -219,7 +219,11 @@ create view view__takecare_uid_has as
 	where extra notnull
 );
 
-
+create view view__monitor_data_size as (
+    select mlf.ids__interval,mlf.interval__start, pg_column_size(mlf) +pg_column_size(mhf) "datasize"
+    from monitorlf mlf, monitorhf mhf
+    where mlf.ids__interval =mhf.ids__interval
+);
 
 create view view__vikt_has as
 (

@@ -3,7 +3,7 @@ from utils_db.utils_db import get_engine, get_hf_data, get_dbcfg, run_query
 import pandas as pd
 import socket
 from datetime import datetime
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 
 if __name__ == "__main__":
@@ -45,8 +45,8 @@ if __name__ == "__main__":
     dfplot = pd.concat([dout, dfsizes], axis=0).fillna(0).set_index("interval__start").sort_index().resample(pd.Timedelta(1, "day")).sum()
     d_gb = dfplot.values/1024/1024/1024
 
-    plt.close()
-    plt.plot(dfplot.index, d_gb)
+    #plt.close()
+    #plt.plot(dfplot.index, d_gb)
 
     intervs = ["db3765793e4fa989c5ccf2575888deec874fbbe3d86fbcc6be0129879a55fb15",
             "eabd26deb24719d8f637dcbac5825d553bbb4d72fb84f0508002a33bc8a103b9",

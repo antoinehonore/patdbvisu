@@ -144,6 +144,10 @@ create view view__monitor_meta_uid_rsv as (
     select distinct ids__uid from monitor_meta where monid like '%%RSV%%'
 );
 
+create view view__monitor_meta_uid_nicu as (
+    select distinct ids__uid from monitor_meta where monid like '%%RSV%%'
+);
+
 create view view__overview_uid_u71_main as (
     select distinct ids__uid from overview where u071_main like 'yes'
 );
@@ -219,11 +223,24 @@ create view view__takecare_uid_has as
 	where extra notnull
 );
 
-create view view__monitor_data_size as (
-    select mlf.ids__interval,mlf.interval__start, pg_column_size(mlf) +pg_column_size(mhf) "datasize"
-    from monitorlf mlf, monitorhf mhf
-    where mlf.ids__interval =mhf.ids__interval
+
+create view view__monitorlf_data_size as (
+    select mlf.ids__interval,mlf.interval__start, pg_column_size(mlf)-267 "datasize", 'lf' as "type"
+    from monitorlf mlf
 );
+
+create view view__monitorhf_data_size as (
+select mhf.ids__interval, mhf.interval__start, pg_column_size(mhf)-267 "datasize", 'hf' as "type"
+    from monitorhf mhf
+);
+
+
+create view view__monitor_data_size as (
+    select * from view__monitorhf_data_size
+    union
+    select * from view__monitorlf_data_size
+);
+
 
 create view view__vikt_has as
 (

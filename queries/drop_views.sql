@@ -74,3 +74,5 @@ drop view if exists view__med_uid_has_caffein;
 drop view if exists view__med_has_caffein;
 
 drop view if exists view__monitor_data_size;
+drop view if exists view__monitorlf_data_size;
+drop view if exists view__monitorhf_data_size;

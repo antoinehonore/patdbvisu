@@ -129,10 +129,18 @@ def get_lf_data(the_intervals, engine, Ts="10T", disp_all_available=False):
     return dfmon, sig_colors
 
 
+def get_interv_query(ids__uid):
+    return "select ids__interval from view__interv_all where ids__uid = '{}'".format(ids__uid)
+
+
+def get_cache_fname(ids__uid, opts_signals, cache_root):
+    return os.path.join(cache_root, gethash(get_interv_query(ids__uid) + str(opts_signals)) + "_monitor.pkl")
+
+
 def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
                        force_redraw=False, opts_signals=None, verbose=2):
 
-    s_uid = "select ids__interval from view__interv_all where ids__uid = '{}'".format(ids__uid)
+    s_uid = get_interv_query(ids__uid) #"select ids__interval from view__interv_all where ids__uid = '{}'".format(ids__uid)
 
     with engine.connect() as con:
         the_intervals = list(map(lambda ss: "'" + ss + "'", pd.read_sql(s_uid, con).values.reshape(-1).tolist()))
@@ -172,7 +180,7 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
 
             for iresp, k in enumerate(dfresp.columns):
                 resp_plot_data.append(go.Scattergl(x=dfresp.index,
-                                                   y=dfresp[k]-1.5,
+                                                   y=dfresp[k]-1.2,
                                                    hovertemplate="<b>Date</b>: %{x}<br><b>Name</b>: " + k.replace("respirator_",""),
                                                    mode='markers',
                                                    name=k.replace("respirator_", ""),
@@ -225,7 +233,7 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
             c = "darkred" if thecase_sepsis else "black"
             thesize = 6 if thecase_sepsis else 1
 
-            the_plot_data += [go.Scattergl(x=[l[1][0]]*10, y=np.linspace(-0.5, 0, 10).tolist(),
+            the_plot_data += [go.Scattergl(x=[l[1][0]]*10, y=np.linspace(0, 1, 10).tolist(),
                                          hovertemplate="{}<br>{}<br>{}".format(*l[0].replace("tkevt__", "").split("/")),
                                          mode='lines', line=dict(width=thesize, color=c), showlegend=False)]
 
@@ -381,9 +389,10 @@ def search_id(token, cfg_root="cfg"):
     Input("patdisp-search-button", "n_clicks"),
     Input("patdisp-convert-button", "n_clicks"),
     Input('patdisp-clear-button', "n_clicks"),
-    Input("patdisp-input-patid", "value")
+    Input("patdisp-input-patid", "value"),
+    State("patdisp-plot-checklist", "value")
 )
-def cb_render(n_clicks, n_click_cv, n_clicks_clear, patid):
+def cb_render(n_clicks, n_click_cv, n_clicks_clear, patid, opts_signals, cache_root="cache"):
     empty_out = [[], []]
     if (n_clicks is None) and (n_click_cv is None) and (n_clicks_clear is None):
         raise PreventUpdate
@@ -444,7 +453,13 @@ def cb_render(n_clicks, n_click_cv, n_clicks_clear, patid):
                                  for id, s, e in all_interv.values]
 
                     value = []
-                    out = [None, options, value]
+
+                    cache_fname = get_cache_fname(patid, opts_signals, cache_root)
+                    pidprint("Looking for",cache_fname)
+                    elt_out = html.P("Plot not found in cache.",style={"color":"#d50000","font-weight": "bold"})
+                    if os.path.isfile(cache_fname):
+                        elt_out = html.P("Plot found in cache.",style={"color":"#2ecc71","font-weight": "bold"})
+                    out = [elt_out, options, value]
 
             elif button_id == "patdisp-convert-button":
                 time.sleep(1)

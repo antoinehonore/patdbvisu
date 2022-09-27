@@ -1,5 +1,9 @@
 git+ssh://git@gitlab.com/antoinehonore/utils_db.git
+git+ssh://git@gitlab.com/antoinehonore/utils_plots.git
+#git+ssh://git@gitlab.com/antoinehonore/utils_tbox.git
+
 et-xmlfile==1.1.0
+
 greenlet==1.1.2
 numpy==1.21.2
 openpyxl==3.0.9
@@ -16,3 +20,4 @@ tableone
 dash
 dash-extensions
 gunicorn
+matplotlib

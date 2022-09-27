@@ -3,8 +3,10 @@ import pandas as pd
 
 from parse import parse
 import os
-from src.utils import gdate, date_fmt, pidprint
+from utils_tbox.utils_tbox import date_fmt, pidprint, gdate
 from utils_db.utils_db import get_engine, get_dbcfg
+
+import sys
 
 
 def get_primary_keys(tbl_name, engine, thedefault="ids__interval"):
@@ -130,8 +132,6 @@ def fmt_sqldtype(x):
         return "\'{}\'".format(out)
     else:
         return "NULL"
-
-import sys
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", type=str, nargs="+")

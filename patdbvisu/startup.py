@@ -1,7 +1,7 @@
 import dash
 
 from utils_db.utils_db import get_engine, get_dbcfg
-from src.utils import get_colnames, all_data_tables
+from utils_db.design import get_colnames, all_data_tables
 
 app = dash.Dash(
     __name__,

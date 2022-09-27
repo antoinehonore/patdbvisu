@@ -1,7 +1,7 @@
+
 import argparse
-from src.utils import read_query_file
-from utils_db.utils_db import get_engine, get_dbcfg
-from src.events import d
+from utils_db.utils_db import get_engine, get_dbcfg, read_query_file
+from utils_db.takecare import d
 import pandas as pd
 import sys
 

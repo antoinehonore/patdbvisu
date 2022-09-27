@@ -1,17 +1,21 @@
 import os
 
-import matplotlib.pyplot as plt
 from utils_db.utils_db import get_engine, get_hf_data, get_dbcfg, run_query
 import pandas as pd
 import socket
 from datetime import datetime
-#import matplotlib.pyplot as plt
 
+from patdbvisu.src.patdisp import get_lf_data
+import matplotlib.pyplot as plt
 
 if __name__ == "__main__":
     dbcfg = get_dbcfg("cfg/db.cfg")
     engine = get_engine(verbose=False, **dbcfg)
     rdir = ".." if socket.gethostname() == "cmm0576" else "."
+
+    get_lf_data(["\'fc7cad821ee39d813dcc2893a680288390d07c011fb7e029e870930e401dee05\'",
+                 "\'8d68b12880e12f9d8b131af503c9626c0a6864c8b093ce2221391461f115216d\'",
+                 "\'909a21eaf2720305f4d897ff5665419781bc20d4a42e0f34565d4bbbebbe183e\'"], engine, Ts="10T",disp_all_available=False)
 
     sizes_fname = os.path.join(rdir, "thesizes.csv")
 

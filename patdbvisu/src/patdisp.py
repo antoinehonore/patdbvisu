@@ -1,12 +1,18 @@
-from src.utils import all_data_tables2, \
-    valid_signames, better_lookin, run_select_queries, gentbl_raw,\
-    all_data_tables, ref_cols, get_update_status, \
-    pidprint, get_colnames
+from src.utils import run_select_queries, gentbl_raw, get_update_status
+from startup import app, engine
 
-from startup import app, engine, all_cols
-from src.events import d as event_d
+from utils_plots.utils_plots import better_lookin, ALL_COLORS
+from utils_tbox.utils_tbox import pidprint
+from utils_db.takecare import d as event_d
+
 from utils_db.utils_db import get_hf_data, set_lf_query, get_signals,\
     get_tk_data,run_query,get_engine,get_dbcfg, get_resp_data
+
+from utils_db.psql import get_colnames
+
+from utils_db.design import all_data_tables2, all_data_tables, ref_cols, valid_signames, grouped_sig_colors, resp_colors 
+from utils_db.anonym import gethash,init_hash_fun, is_patid, is_pn
+
 import pandas as pd
 import dash
 from dash import html, Input, Output, State, dcc
@@ -26,78 +32,6 @@ import hashlib
 # The tables column names
 with engine.connect() as con:
     all_cols = {k: get_colnames(k, con) for k in all_data_tables}
-
-ALL_COLORS = ["aliceblue", "antiquewhite", "aqua", "aquamarine", "azure",
-                "beige", "bisque", "black", "blanchedalmond",
-                "blueviolet", "brown", "burlywood", "cadetblue",
-                "chartreuse", "chocolate", "coral", "cornflowerblue",
-                "cornsilk", "crimson", "cyan", "darkblue", "darkcyan",
-                "darkgoldenrod", "darkgray", "darkgrey", "darkgreen",
-                "darkkhaki", "darkmagenta", "darkolivegreen", "darkorange",
-                "darkorchid", "darkred", "darksalmon", "darkseagreen",
-                "darkslateblue", "darkslategray", "darkslategrey",
-                "darkturquoise", "darkviolet", "deeppink", "deepskyblue",
-                "dimgray", "dimgrey", "dodgerblue", "firebrick",
-                "floralwhite", "forestgreen", "fuchsia", "gainsboro",
-                "ghostwhite", "gold", "goldenrod", "gray", "grey",
-                "greenyellow", "honeydew", "hotpink", "indianred", "indigo",
-                "ivory", "khaki", "lavender", "lavenderblush", "lawngreen",
-                "lemonchiffon", "lightblue", "lightcoral", "lightcyan",
-                "lightgoldenrodyellow", "lightgray", "lightgrey",
-                "lightgreen", "lightpink", "lightsalmon", "lightseagreen",
-                "lightskyblue", "lightslategray", "lightslategrey",
-                "lightsteelblue", "lightyellow", "lime", "limegreen",
-                "linen", "magenta", "maroon", "mediumaquamarine",
-                "mediumblue", "mediumorchid", "mediumpurple",
-                "mediumseagreen", "mediumslateblue", "mediumspringgreen",
-                "mediumturquoise", "mediumvioletred", "midnightblue",
-                "mintcream", "mistyrose", "moccasin", "navajowhite", "navy",
-                "oldlace", "olive", "olivedrab", "orange", "orangered",
-                "orchid", "palegoldenrod", "palegreen", "paleturquoise",
-                "palevioletred", "papayawhip", "peachpuff", "peru", "pink",
-                "plum", "powderblue", "purple", "rosybrown",
-                "royalblue", "saddlebrown", "salmon", "sandybrown",
-                "seagreen", "seashell", "sienna", "silver", "skyblue",
-                "slateblue", "slategray", "slategrey", "springgreen",
-                "steelblue", "tan", "teal", "thistle", "tomato", "turquoise",
-                "violet", "wheat", "yellow",
-                "yellowgreen"
-            ] * 5
-
-grouped_sig_colors = {"btb": "red", "rf": "green", "spo2": "blue"}
-
-resp_colors = {
-    "respirator_cpap": "darkgreen",
-    "respirator_fabian":"black",
-    "respirator_hfo":"red",
-    "respirator_nasal__cpap": "darkgreen",
-    "respirator_sipap__biphasic__tr": "blue",
-    "respirator_sipap__biphasic__trapn": "blue",
-    "respirator_sipap__biphasic_duop": "blue",
-    "respirator_sippv": "orange",
-    "respirator_standby": "black",
-    "respirator_unknown": "black",
-    "respirator_o2__therapy": "green",
-    "respirator_bilevel":"orange",
-    "respirator_advance__cpap_apne": "darkgreen",
-    "respirator_tk": "orange",
-    "respirator_advance__cpap__trpa":"darkgreen",
-    "respirator_pc_ps_auto_no__pat__tr":"orange",
-    "respirator_pc_ps_auto_pat__trigg":"orange",
-    "respirator_ps_cpap": "darkgreen",
-    "respirator_ippv_imv": "orange",
-    "respirator_simv_neonatology_":"orange",
-    "respirator_tu_cpap": "darkgreen",
-    "respirator_ncpap": "darkgreen",
-    "respirator_hogt__flode": "darkgreen",
-    "respirator_inget": "black",
-    "respirator_nasal__cpapippv_imv": "darkgreen",
-    "respirator_21": "black",
-    "respirator_nasal_cpap": "darkgreen",
-    "respirator_vkts": "orange",
-    "respirator_bilevelsippv": "orange"
-}
-
 
 all_the_monitorlf_cols = [s.strip("\"") for s in all_cols["monitorlf"] if s.strip("\"").startswith("lf__")]
 indiv_sig_colors = {signame: colorname if len([grouped_sig_colors[k] for k,v in valid_signames.items() if signame in v])==0
@@ -278,94 +212,6 @@ def get_monitor_visual(ids__uid, engine, cache_root=".", data2=None,
     return fig
 
 
-def read_salt(fname: str) -> str:
-    """Read hash function salt from file."""
-    with open(fname, "r", encoding="utf8") as f:
-        out = f.read().strip()
-    return out
-
-
-def gethash(s: str, salt="") -> str:
-    """Use the function returned by `patdb_tbox.pn.format_pn.init_hash_fun` instead."""
-    if isinstance(s, str):
-        out = hashlib.sha256((salt+s).encode("utf8")).hexdigest()
-    else:
-        out = hashlib.sha256((salt+str(s)).encode("utf8")).hexdigest()
-    return out
-
-
-def init_hash_fun(fname_salt="/opt/psql/pn_salt.txt") -> partial:
-    """Returns the PN callable hash_function."""
-    salt_str = read_salt(fname_salt)
-    hash_fun = partial(gethash, salt=salt_str)
-    return hash_fun
-
-
-thisyear = str(datetime.now().year)
-
-
-def format_pn(x) -> str:
-    """
-    Format personal numbers.
-
-    All temporary numbers are formatted: 99yyyy-xxxxxx
-    All the standard numbers are formatted: yyyymmdd-xxxx
-
-    If the input does not match  re.compile("^[0-9]+-?[0-9]+$") (i.e. is only made of numbers potentially separated with a '-')
-    then the output is returned.
-    """
-
-    # Can only remove the ambiguity if people are less than 100 years old
-    if re_is_pn.fullmatch(x) is None: # is it not made of digits and potentially a '-'
-        return x
-
-    if x[:2] == '99':
-        if '-' in x:
-            s = x.split("-")
-            if len(s[0]) == 6 and len(s[1]) == 6: #99yyyy-xxxxxx
-                return x
-
-            if len(s[0]) == 10 and len(s[1]) == 4: #99yyyymmdd-xxxx (faulty input)
-                return x[2:]
-
-        else:  #99yyyyxxxxxx
-            return x[:6] + '-' + x[6:]
-    else:
-        if '-' in x:
-            s = x.split("-")
-            if len(s[0]) == 6 and len(s[1]) == 4:
-                if int(s[0][:2]) <= int(thisyear[2:]):  #yymmdd-xxxx (supposely born with a year starting with 20. (i.e. we can t format PN of people born before 1921)
-                    return '20' + x
-                elif int(s[0][:2]) > int(thisyear[2:]):
-                    return '19' + x
-            if len(s[0]) == 4 and len(s[1]) == 6 and int(s[0]) <= int(thisyear):  #yyyy-xxxxxx
-                return '99' + x
-            if len(s[0]) == 8 and len(s[1]) == 4 and int(s[0]) <= int(thisyear):  #yyyymmdd-xxxx
-                return x
-        else:
-            if len(x) == 12 and int(x[:4]) <= int(thisyear): #yyyymmddxxxx
-                return x[:8] + '-' + x[8:]
-
-            if len(x) == 10:
-                if int(x[:2]) <= int(thisyear[2:]): #yymmddxxxx with yy <= 21
-                    return '20' + x[:6] + '-' + x[6:]
-                elif int(x[:2]) > int(thisyear[2:]): #yymmddxxxx with yy >21
-                    return '19' + x[:6] + '-' + x[6:]
-    return x
-
-
-re_is_patid = re.compile("^[a-zA-Z0-9]*$")
-re_is_pn = re.compile("^[0-9]+-?[0-9]+$")
-
-
-def is_patid(s):
-    return (len(str(s)) == 64) and (re_is_patid.fullmatch(str(s)))
-
-
-def is_pn(s):
-    return (len(str(s)) == 13) and (not (re_is_pn.fullmatch(str(s)) is None))
-
-
 def prep_token(s):
     f = init_hash_fun()
     thehash = f(s)
@@ -507,7 +353,6 @@ def make_fig(fig):
     return out
 
 
-# 71f3f1ab2f42253f2fe36886720ef5353a2fe84244dd19c031dc4f4b1a189700
 thecase = "case when ({} notnull) then True else NULL end as {}"
 
 

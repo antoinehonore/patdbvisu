@@ -1,42 +1,14 @@
 import argparse
 import os
-import subprocess
-from patdbvisu.src.utils import register_ids
+from utils_db.anonym import register_ids
 from utils_db.utils_db import get_dbcfg, get_engine, pidprint
-from patdbvisu.src.patdisp import is_pn, init_hash_fun, format_pn
+from utils_db.anonym import is_pn, init_hash_fun, format_pn
+from utils_tbox.io import read_map
 import sys
 import numpy as np
 import pandas as pd
 
 
-def decrypt_file(fname):
-    cmd = "gpg -d --passphrase-file=/opt/psql/gpg_antoine_pfile.txt --yes --batch {} 2>/dev/null".format(fname)
-    s = subprocess.check_output(cmd, shell=True).decode("utf8")
-    return s
-
-
-def read_fname(fname):
-    if ".gpg" in os.path.basename(fname):
-        s = decrypt_file(fname)
-
-    else:
-        with open(fname, "rb") as fp:
-            s = fp.read().decode("utf8")
-
-    if s[:2] != "ID":
-        lines = list(map(lambda x: x.split(";"), s.strip()[1:].split("\r\n")))
-    else:
-        lines = list(map(lambda x: x.split(";"), s.strip().split("\n")))
-
-    return lines
-
-
-def read_map(fname):
-    lines = read_fname(fname)
-    d = pd.DataFrame(data=lines[1:], columns=lines[0])
-    rootdir = os.path.basename(os.path.dirname(fname))
-    d["ID"] = rootdir + "_pat" + d["ID"]
-    return d.set_index("ID")
 
 
 parser = argparse.ArgumentParser()

@@ -1,4 +1,8 @@
 *.log
+*.csv
+dist/
+.vscode
+*cache*
 cfg
 */cfg/db.cfg
 */cfg/pnuid.cfg

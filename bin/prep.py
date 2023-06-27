@@ -244,7 +244,7 @@ def chunk_fun(df, agg_fun, local_id, period):
     else:
         intervals = [(start_date, end_date)]
 
-    out = pd.DataFrame()
+    out = []
     for i_interv, (start, end) in enumerate(intervals):
         chunk = df[(df["date"] >= start).values & (df["date"] < end).values]
 
@@ -257,8 +257,8 @@ def chunk_fun(df, agg_fun, local_id, period):
 
         if not ("local_id" in tmp_chunk.columns):
             tmp_chunk["local_id"] = local_id
-        out = out.append(tmp_chunk, sort=True)
-
+        out = out.append(tmp_chunk)
+    out = pd.concat(out,sort=True)
     first_cols = ["local_id", "interval__start", "interval__end"]
     out = out[first_cols + [s for s in out.columns if not (s in first_cols)]]
     return out

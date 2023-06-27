@@ -4,7 +4,7 @@ import pandas as pd
 from parse import parse
 import os
 from utils_tbox.utils_tbox import date_fmt, pidprint, gdate
-from utils_db.utils_db import get_engine, get_dbcfg
+from utils_db.utils_db import get_engine, get_dbcfg, run_query
 
 import sys
 
@@ -109,14 +109,13 @@ def add_columns(df, schema, tbl_name, engine):
                       "WHERE table_schema = \'{}\' " \
                       "AND table_name   = \'{}\';".format(schema, tbl_name)
 
-    with engine.connect() as con:
-        all_cols = pd.read_sql(list_cols_query, con).values.reshape(-1).tolist()
+    all_cols = run_query(list_cols_query, engine).values.reshape(-1).tolist()
     missing_cols = [s for s in df.columns if not (s in all_cols)]
     if len(missing_cols) > 0:
         add_cols_query = "ALTER TABLE {} ".format(tbl_name) + ",".join(
             ["add column {} varchar".format("\"" + c.replace("%","%%") + "\"") for c in missing_cols])
         with engine.connect() as con:
-            con.execute(add_cols_query)
+            con.connection.execute(add_cols_query)
         print(gdate(), "add columns", add_cols_query, file=sys.stderr)
 
 
@@ -212,11 +211,11 @@ if __name__ == "__main__":
                     thekeyvalue = df.loc[i, thekeys[0]]
 
                     # Download the existing data
-                    drow = pd.read_sql("select * from {}.{} where {} like \'%%{}%%\'".format(schema,
+                    drow = run_query("select * from {}.{} where {} like \'%%{}%%\'".format(schema,
                                                                                              tbl_name,
                                                                                              thekeys[0],
                                                                                              thekeyvalue),
-                                       con)
+                                       con.connection)
 
                     # Row2dict
                     row = {k: fmt_sqldtype(v).replace("'-99999'", "NULL") for k, v in df.iloc[i].to_dict().items()}
@@ -239,7 +238,7 @@ if __name__ == "__main__":
                                                                                   to_update.keys()))),
                                                                           thevalues)
 
-                        con.execute(query_s.replace("%", "%%"))
+                        con.connection.execute(query_s.replace("%", "%%"))
 
                         infoprint = query_s if len(query_s) < 1000 else query_s.replace(thevalues,
                                                                                         "****************<Too long>****************")
@@ -254,7 +253,7 @@ if __name__ == "__main__":
                                                                             the_update,
                                                                             thekeys[0],
                                                                             fmt_sqldtype(thekeyvalue))
-                            con.execute(query_s.replace("%","%%"))
+                            con.connection.execute(query_s.replace("%","%%"))
                             infoprint = query_s if len(query_s) < 1000 else query_s.replace(the_update, "****************<Too long>****************")
                             pidprint(fname, "update", infoprint, flag="report")
 

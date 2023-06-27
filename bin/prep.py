@@ -259,8 +259,8 @@ def chunk_fun(df, agg_fun, local_id, period):
 
         if not ("local_id" in tmp_chunk.columns):
             tmp_chunk["local_id"] = local_id
-        out = out.append(tmp_chunk)
-        
+        out.append(tmp_chunk)
+
     out = pd.concat(out,sort=True)
     out = out[first_cols + [s for s in out.columns if not (s in first_cols)]]
     return out

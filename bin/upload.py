@@ -253,7 +253,7 @@ if __name__ == "__main__":
                                                                             the_update,
                                                                             thekeys[0],
                                                                             fmt_sqldtype(thekeyvalue))
-                            con.connection.execute(text(query_s.replace("%","%%")))
+                            con.execute(text(query_s.replace("%","%%")))
                             infoprint = query_s if len(query_s) < 1000 else query_s.replace(the_update, "****************<Too long>****************")
                             pidprint(fname, "update", infoprint, flag="report")
 

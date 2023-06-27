@@ -243,8 +243,10 @@ def chunk_fun(df, agg_fun, local_id, period):
         intervals = [(start_date + i * step, start_date + (i + 1) * step) for i in range(n_full_intervals)]
     else:
         intervals = [(start_date, end_date)]
+    
+    first_cols = ["local_id", "interval__start", "interval__end"]
 
-    out = []
+    out = [pd.DataFrame(columns=first_cols)]
     for i_interv, (start, end) in enumerate(intervals):
         chunk = df[(df["date"] >= start).values & (df["date"] < end).values]
 
@@ -258,8 +260,8 @@ def chunk_fun(df, agg_fun, local_id, period):
         if not ("local_id" in tmp_chunk.columns):
             tmp_chunk["local_id"] = local_id
         out = out.append(tmp_chunk)
+        
     out = pd.concat(out,sort=True)
-    first_cols = ["local_id", "interval__start", "interval__end"]
     out = out[first_cols + [s for s in out.columns if not (s in first_cols)]]
     return out
 

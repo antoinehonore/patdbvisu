@@ -5,7 +5,7 @@ from parse import parse
 import os
 from utils_tbox.utils_tbox import date_fmt, pidprint, gdate
 from utils_db.utils_db import get_engine, get_dbcfg, run_query
-
+from sqlalchemy import text
 import sys
 
 
@@ -115,7 +115,7 @@ def add_columns(df, schema, tbl_name, engine):
         add_cols_query = "ALTER TABLE {} ".format(tbl_name) + ",".join(
             ["add column {} varchar".format("\"" + c.replace("%","%%") + "\"") for c in missing_cols])
         with engine.connect() as con:
-            con.connection.execute(add_cols_query)
+            con.execute(text(add_cols_query))
         print(gdate(), "add columns", add_cols_query, file=sys.stderr)
 
 
@@ -238,7 +238,7 @@ if __name__ == "__main__":
                                                                                   to_update.keys()))),
                                                                           thevalues)
 
-                        con.connection.execute(query_s.replace("%", "%%"))
+                        con.execute(text(query_s.replace("%", "%%")))
 
                         infoprint = query_s if len(query_s) < 1000 else query_s.replace(thevalues,
                                                                                         "****************<Too long>****************")
@@ -253,7 +253,7 @@ if __name__ == "__main__":
                                                                             the_update,
                                                                             thekeys[0],
                                                                             fmt_sqldtype(thekeyvalue))
-                            con.connection.execute(query_s.replace("%","%%"))
+                            con.connection.execute(text(query_s.replace("%","%%")))
                             infoprint = query_s if len(query_s) < 1000 else query_s.replace(the_update, "****************<Too long>****************")
                             pidprint(fname, "update", infoprint, flag="report")
 
@@ -264,7 +264,7 @@ if __name__ == "__main__":
                 table_create_stmt = fp.read()
 
             with engine.connect() as con:
-                con.execute(table_create_stmt)
+                con.execute(text(table_create_stmt))
 
             the_data = pd.read_sql(tbl_name, engine)
             the_data.dtypes.to_pickle("cfg/{}.types".format(tbl_name))

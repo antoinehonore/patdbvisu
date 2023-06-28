@@ -258,8 +258,8 @@ def chunk_fun(df, agg_fun, local_id, period):
         if "date" in tmp_chunk.columns:
             tmp_chunk.drop(columns=["date"], inplace=True)
 
-        if not ("local_id" in tmp_chunk.columns):
-            tmp_chunk["local_id"] = local_id
+        #if not ("local_id" in tmp_chunk.columns):
+        tmp_chunk["local_id"] = local_id
         out.append(tmp_chunk)
 
     out = pd.concat(out,sort=True)
@@ -320,7 +320,7 @@ def chunk(args):
         df["key"] = make_tkevt_key(df)
 
         df = pd.concat([df[["local_id", "date", "extra"]],
-                        pd.get_dummies(df["key"], prefix=args.cpref, prefix_sep="__")],
+                        pd.get_dummies(df["key"], prefix=args.cpref, prefix_sep="__",dtype=int)],
                         axis=1).astype(str)
 
         df = df.replace("0", np.nan)

@@ -155,7 +155,8 @@ def format_tkevt_string(s):
         .replace("peripheral__artery__catheter", "periph-art-cath")\
         .replace("respiratory__viral__infection", "resp-viral-inf")\
         .replace("ventilation__and__heart__compression", "vent-and-heart-comp")\
-        .replace("blood__sample__imbalance", "blod-samp-imbal")
+        .replace("blood__sample__imbalance", "blod-samp-imbal")\
+        .replace("pulmonary__artery__stenosis__non-significant", "pul-art-ste__ns")
 
 
 def format_clindata_string(s):

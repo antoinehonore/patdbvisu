@@ -206,6 +206,7 @@ def prep(args):
 
     elif os.path.basename(infname).startswith("overview"):
         df = df.applymap(lambda s: s if not isinstance(s, str) else s.lower())
+        df=df[df["ids__uid"].notna()]
         df["birthdate"] = pd.to_datetime(df["birthdate"], format="mixed").apply(lambda dt: dt.strftime("%Y-%m-%d %H:%M") if not pd.isna(dt) else "NaT")
         if "karda" in os.path.basename(os.path.dirname(infname)):
             if "kon" in df.columns:

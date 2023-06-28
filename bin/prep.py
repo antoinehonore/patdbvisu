@@ -197,8 +197,7 @@ def prep(args):
                            "end": "theend"},
                   inplace=True)
         df = df.replace(";", "", regex=True)
-        df = create_idx(df,
-                        ["ids__uid", "monid", "signame","bedlabel","clinicalunit", "thestart","theend"],
+        df = create_idx(df, ["ids__uid", "monid", "signame","bedlabel","clinicalunit", "thestart","theend"],
                         "ids__mondata", "mondata__raw"
                         )
 
@@ -207,7 +206,7 @@ def prep(args):
 
     elif os.path.basename(infname).startswith("overview"):
         df = df.applymap(lambda s: s if not isinstance(s, str) else s.lower())
-        df["birthdate"] = pd.to_datetime(df["birthdate"], format="mixed")
+        df["birthdate"] = pd.to_datetime(df["birthdate"], format="mixed").apply(lambda dt: dt.strftime("%Y-%m-%d %H:%M") if not pd.isna(dt) else "NaT")
         if "karda" in os.path.basename(os.path.dirname(infname)):
             if "kon" in df.columns:
                 df.rename(columns={"kon": "sex"}, inplace=True)

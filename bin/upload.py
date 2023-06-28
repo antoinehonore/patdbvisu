@@ -113,7 +113,7 @@ def add_columns(df, schema, tbl_name, engine):
     missing_cols = [s for s in df.columns if not (s in all_cols)]
     if len(missing_cols) > 0:
         add_cols_query = "ALTER TABLE {} ".format(tbl_name) + ",".join(
-            ["add column {} varchar".format("\"" + c.replace("%","%%") + "\"") for c in missing_cols])
+            ["add column {} varchar".format("\"" + c.replace("%","%%") + "\"") for c in missing_cols]) + ";"
         with engine.connect() as con:
             con.execute(text(add_cols_query))
         print(gdate(), "add columns", add_cols_query, file=sys.stderr)

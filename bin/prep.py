@@ -207,6 +207,7 @@ def prep(args):
 
     elif os.path.basename(infname).startswith("overview"):
         df = df.applymap(lambda s: s if not isinstance(s, str) else s.lower())
+        df["birthdate"] = pd.to_datetime(df["birthdate"], format="mixed")
         if "karda" in os.path.basename(os.path.dirname(infname)):
             if "kon" in df.columns:
                 df.rename(columns={"kon": "sex"}, inplace=True)

@@ -2,7 +2,7 @@ from datetime import datetime
 import pandas as pd
 from dash import dcc, html
 from dash import dash_table as dt
-
+from utils_tbox.utils_tbox import gdate
 
 # Overwrting some CSS default styles
 style_tbl = dict(

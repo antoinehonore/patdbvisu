@@ -1,5 +1,6 @@
 from src.utils import run_select_queries, gentbl_raw, get_update_status
 from startup import app, engine
+from sqlalchemy import text
 
 from utils_plots.utils_plots import better_lookin, ALL_COLORS
 from utils_tbox.utils_tbox import pidprint
@@ -275,8 +276,8 @@ def cb_render(n_clicks, n_click_cv, n_clicks_clear, patid, opts_signals, cache_r
                                                                                                                     patid)
                         for k
                         in all_data_tables}
-
-                    engine.execute("\n".join([v for v in create_views_queries.values()]))
+                    with engine.connect() as con:
+                        con.execute(text("\n".join([v for v in create_views_queries.values()])))
 
                     select_queries = {k: "select {} from patview_{}_{}".format(the_cases[k], k, patid) for k in
                                       all_data_tables}

@@ -278,7 +278,8 @@ def cb_render(n_clicks, n_click_cv, n_clicks_clear, patid, opts_signals, cache_r
                         in all_data_tables}
                     with engine.connect() as con:
                         con.execute(text("\n".join([v for v in create_views_queries.values()])))
-
+                        con.commit()
+                        
                     select_queries = {k: "select {} from patview_{}_{}".format(the_cases[k], k, patid) for k in
                                       all_data_tables}
 

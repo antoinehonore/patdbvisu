@@ -165,7 +165,9 @@ def format_clindata_string(s):
         .replace(")", "").replace(" ", "__")\
         .replace("tpn__clinoleic_____tillsats__individuel", "tpn_clinol_tillsats_indiv")\
         .replace("tpn__numeta__g16e___tillsats__2_____5_5__kg__inf", "tpn_numeta_g16e_tills_2_5_5_kg_inf")\
-        .replace("natriumklorid__ska__spada", "nat-klo-ska-spada")
+        .replace("tpn__perifer__numeta__g10e___tillsats___2_5kg_ml_h", "tpn_perif-num_g10e_tills_2_5kg_ml_h")\
+        .replace("natriumklorid__ska__spada", "nat-klo-ska-spada")\
+        .replace("kaliumklorid__ska__spadas__", "kal-klo-ska-spadas_")
 
 
 def read_summaries(fname):

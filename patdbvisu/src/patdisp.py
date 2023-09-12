@@ -2,7 +2,7 @@ from src.utils import run_select_queries, gentbl_raw, get_update_status
 from startup import app, engine
 from sqlalchemy import text
 
-from utils_plots.utils_plots import better_lookin, ALL_COLORS
+from utils_plots.utils_plots import ALL_COLORS
 from utils_tbox.utils_tbox import pidprint
 from utils_db.takecare import d as event_d
 

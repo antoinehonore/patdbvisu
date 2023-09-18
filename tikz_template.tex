@@ -1,0 +1,53 @@
+
+\begin{tikzpicture}[
+    %node distance=0.5cm,
+    block/.style={
+        draw,
+        rectangle,rounded corners,very thick,
+        %text width=2.5cm,
+        align=center,
+        minimum width=1.5cm,
+        font=\footnotesize
+    },
+    level1/.style={},
+    level2/.style={},
+    level3/.style={},
+    arrows/.style={}
+]
+
+% Level 1
+\node[block, level1] (L1) {Neo + takecare data\\
+\textbf{633 patients}};
+
+% Level 2
+\node[block, level2, below left=of L1] (L2A) {theevent\\$\mathbf{npat_evt_tot}$};
+\node[block, level2, below=of L1] (L2B) {No theevent\\$\mathbf{npat_not_evt_tot}$};
+
+% Level 3
+\node[block, level3, below left=of L2A] (L3A) {$\mathbf{npat_pos}$\\($n_frames_pos$ frames)};
+\node[block, level3, below=of L2A] (L3B) {$\mathbf{npat_ctrl_pos}$\\($n_frames_ctrl$ frames)};
+\node[block, level3, below=of L2B] (L3C) {$\mathbf{npat_not_ctrl}$\\($n_frames_not_ctrl$ frames)};
+\node[left=of L3A](dummy){};
+\node[above=of dummy](dummy1){};
+\node[above=of dummy1](dummy2){};
+\node[above=of dummy2](dummy3){};
+
+\draw[dashed] (dummy1.south west) -- ([yshift=+0.75cm]L3C.north east);
+%\node[left=1.75cm of L3A.north west] {};
+%\node[left=0.25cm of L3A.north west,yshift=2.5cm] {};
+%\draw [decorate,
+%    decoration = {calligraphic brace}] (0.2,1) --  (1.2,1);
+ \draw[decorate,decoration={brace,amplitude=10pt,mirror}] (dummy3.west |- L1.north) -- (dummy1.south west) node[midway, left=12pt] {At least one signal};
+\draw[decorate,decoration={brace,amplitude=10pt,mirror}] (dummy1.south west) -- (dummy1.south west |- L3A.south) node[midway, left=12pt] {All signals};
+
+% Arrows
+\draw[-latex, thick] (L1) -| (L2A) node[midway,left] {\small Positive Patients};
+\draw[-latex, thick] (L1) -- (L2B);
+\draw[-latex, thick] (L2A) -| (L3A) node[midway,above] {\small Positive Frames};
+\draw[-latex, thick] (L2A) --node[midway,right] {\small Control Frames} (L3B);
+\draw[-latex, thick] (L2B) -- (L3C);
+
+\end{tikzpicture}
+
+
+

@@ -4,6 +4,7 @@ from utils_db.utils_db import get_engine, get_dbcfg, read_query_file
 from utils_db.takecare import d
 import pandas as pd
 import sys
+from sqlalchemy import text
 
 col_sel_="SELECT column_name FROM information_schema.columns WHERE table_schema = 'public' AND table_name   = 'takecare'" \
     "and column_name ~ '{}'"
@@ -59,24 +60,25 @@ if __name__ == "__main__":
             patview_list = pd.read_sql(patview_list_query, con)["table_name"].values.tolist()
 
         if len(patview_list) > 0:
-            engine.execute("\n".join(["drop view if exists {};".format(k) for k in patview_list]))
-
+            with engine.connect() as con:
+                con.execute(text("\n".join(["drop view if exists {};".format(k) for k in patview_list])))
+                con.commit()
         if args.drop:
             overall_drop_query = read_query_file("queries/drop_overall_views.sql")
             advanced_drop_query = read_query_file("queries/drop_advanced_views.sql")
             main_drop_query = read_query_file("queries/drop_views.sql")
+            with engine.connect() as con:
+                con.execute(text(overall_drop_query))
+                con.execute(text(advanced_drop_query))
+                con.execute(text(main_drop_query))
 
-            engine.execute(overall_drop_query)
-            engine.execute(advanced_drop_query)
-            engine.execute(main_drop_query)
-
-            for k, v in drop.items():
-                engine.execute(v)
-            for k, v in drop_uid.items():
-                engine.execute(v)
-            for k, v in drop_evt_agg.items():
-                engine.execute(v)
-
+                for k, v in drop.items():
+                    con.execute(text(v))
+                for k, v in drop_uid.items():
+                    con.execute(text(v))
+                for k, v in drop_evt_agg.items():
+                    con.execute(text(v))
+                con.commit()
         sys.exit(0)
 
     q1_str = {}
@@ -102,31 +104,33 @@ if __name__ == "__main__":
     # A second pass to query the ids__interval for the columns obtained before
     for (k1, v1), (k2, v2), (k3, v3) in zip(q1_str.items(), q2_str.items(), the_tkevt_agg_view.items()):
         assert(k1 == k2)
-        engine.execute(drop_uid[k1])
-        engine.execute(drop[k1])
-        engine.execute(drop_evt_agg[k3])
+        with engine.connect() as con:
+            con.execute(text(drop_uid[k1]))
+            con.execute(text(drop[k1]))
+            con.execute(text(drop_evt_agg[k3]))
 
-        if not (v1 is None):
-            engine.execute("create view view__tkgrp_{} as ({});".format(k1, v1))
-        if not (v2 is None):
-            engine.execute("create view view__tkgrp_uid_{} as ({});".format(k2, v2))
-        if not (v3 is None):
-            engine.execute("create view view__tkgrp_agg_{} as ({});".format(k3, v3))
+            if not (v1 is None):
+                con.execute(text("create view view__tkgrp_{} as ({});".format(k1, v1)))
+            if not (v2 is None):
+                con.execute(text("create view view__tkgrp_uid_{} as ({});".format(k2, v2)))
+            if not (v3 is None):
+                con.execute(text("create view view__tkgrp_agg_{} as ({});".format(k3, v3)))
+            con.commit()
 
     REGISTERED_TK_EVENTS = ",\n".join([
     "case when (via.ids__interval in (select v.ids__interval from view__tkgrp_{} v)) then 1 else 0 end as \"{}\"".format(k, k) for k in queries1.keys()])
 
     REGISTERED_UID_TK_EVENTS = ",\n".join([
     "case when (vua.ids__uid in (select v.ids__uid from view__tkgrp_uid_{} v)) then 1 else 0 end as \"{}\"".format(k, k) for k in queries1.keys()])
+    with engine.connect() as con:
+        main_query = read_query_file("queries/set_views.sql")
+        con.execute(text(main_query))
 
-    main_query = read_query_file("queries/set_views.sql")
-    engine.execute(main_query)
+        advanced_query = read_query_file("queries/set_advanced_views.sql")
+        con.execute(text(advanced_query))
 
-    advanced_query = read_query_file("queries/set_advanced_views.sql")
-    engine.execute(advanced_query)
-
-
-    overall_query = read_query_file("queries/set_overall_views.sql")
-    overall_query = overall_query.replace("$REGISTERED_TK_EVENTS$", REGISTERED_TK_EVENTS)
-    overall_query = overall_query.replace("$REGISTERED_UID_TK_EVENTS$", REGISTERED_UID_TK_EVENTS)
-    engine.execute(overall_query)
+        overall_query = read_query_file("queries/set_overall_views.sql")
+        overall_query = overall_query.replace("$REGISTERED_TK_EVENTS$", REGISTERED_TK_EVENTS)
+        overall_query = overall_query.replace("$REGISTERED_UID_TK_EVENTS$", REGISTERED_UID_TK_EVENTS)
+        con.execute(text(overall_query))
+        con.commit()

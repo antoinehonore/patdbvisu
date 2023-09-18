@@ -3,6 +3,7 @@ import pandas as pd
 
 from parse import parse
 import os
+from utils_plots.utils_plots import better_lookin
 from utils_tbox.utils_tbox import date_fmt, pidprint, gdate, write_pklz, read_pklz
 from utils_db.utils_db import get_engine, get_dbcfg, run_query,get_pat_feats, run_query,get_pat_labels
 from sqlalchemy import text
@@ -12,6 +13,8 @@ from collections import ChainMap
 from multiprocessing import Pool
 from functools import partial
 import argparse
+import matplotlib.pyplot as plt
+
 
 def summarize_patdata(ids__uid, wlen_min=10, cfg_fname="cfg/db.cfg", verbose=0, cache_dir="cache"):
     if verbose>0:
@@ -71,6 +74,7 @@ parser.add_argument("-wlen",type=int,help="Window length in minutes",default=10)
 parser.add_argument("-j",type=int,help="Number of jobs",default=1)
 parser.add_argument("-v",type=int,help="Verbosity (int)",default=0)
 parser.add_argument("-cache",type=str,help="Cache directory",default="cache")
+
 if __name__ == "__main__":
     args = parser.parse_args()
 
@@ -81,35 +85,62 @@ if __name__ == "__main__":
     os.makedirs(cache_dir, exist_ok=True)
 
     cfg_fname = "cfg/db.cfg"
-    dbcfg = get_dbcfg(cfg_fname)
-    engine = get_engine(verbose=verbose, **dbcfg)
+    #dbcfg = get_dbcfg(cfg_fname)
+    #engine = get_engine(verbose=verbose, **dbcfg)
     
-    query = "select ov.ids__uid as \"ids__uid2\", ov.bw, ov.ga_w, ov.sex,ov.birthdate, vuh.* from view__uid_has vuh, overview ov\
-        where neo=1 and takecare=1 and ((spo2=1)or(btb=1)or(rf=1)) and vuh.ids__uid =ov.ids__uid "
+    fname = "summary_neo_all_wlen_{}min.csv".format(wlen_min)
+    df = pd.read_csv(fname)
+    outdir = "plots"
+    
+    # Count of events
+    all_events = ["neo_adverse","los","eos","cps_los","cns_los","cns_eos","cps_eos","infection","bleeding","lung_bleeding","infection","cns_infection","sro","abdominal_nec", "pneumonia","brain_ivh_stage_3_4","lung_bleeding"]
+    a = []
+    for theevent in all_events:
+        # Patients with  positive LOS frames
+        npat_not_evt_tot = int((df[theevent]==0).sum())
+        npat_evt_tot = int(df[theevent].sum())
 
-    demo_data = run_query(query, engine)    
-    df = run_query(query, engine, verbose=verbose).drop(columns=["ids__uid2"])
-    if verbose:
-        pidprint("Number of patients to process:", df.shape[0])
-    all_ids = df["ids__uid"].values
-    all_pat_summaries = []
-    fp = partial(summarize_patdata, wlen_min=wlen_min, verbose=verbose, cfg_fname=cfg_fname, cache_dir=cache_dir)
-    
-    if n_jobs == 1:
-        all_pat_summaries = list(map(fp, all_ids))
-    else:
-        with Pool(processes=n_jobs) as pool:
-            all_pat_summaries = pool.map(fp, all_ids)
-    
-    for i, ids__uid in enumerate(all_ids):
-        for k, v in all_pat_summaries[i][ids__uid].items():
-            df.loc[i, k] = v if v>0 else np.nan
-    df.set_index("ids__uid", inplace=True)
-    
-    # df.set_index("ids__uid").to_csv("summary_neo_all_wlen_{}min.csv".format(wlen_min))
-    keep_cols = ["sex","ga_w","preterm","bw","vlbw","birthdate"]+[s for s in df.columns if (s.endswith("los") or s.endswith("ctrl"))]
-    keep_cols = df.columns
-    df[keep_cols].to_csv("summary_neo_all_wlen_{}min.csv".format(wlen_min))
-    print("")
-    
-    
+        df_evt = df[(df[theevent]==1) & (df["allsignals__target__{}".format(theevent)].notna())].sort_values("allsignals__target__{}".format(theevent))
+        df_evt_ctrl = df[(df[theevent]==1) & (df["all_signals__ctrl"].notna())]
+        df_evt_not = df[(df[theevent]==0) & (df["all_signals__ctrl"].notna())]
+
+        npat_not_ctrl = df_evt_not["ids__uid"].unique().shape[0]
+        n_frames_not_ctrl = int(df_evt_not["all_signals__ctrl"].sum())
+
+        fig, ax = plt.subplots(figsize=(8, 4))
+        rect = ax.barh(df_evt["ids__uid"], df_evt["allsignals__target__{}".format(theevent)], color="darkgreen")
+        ax.bar_label(rect,df_evt["allsignals__target__{}".format(theevent)].astype(int),fontsize=10)
+        ax.set_xlabel("# positive {}min frames".format(wlen_min))
+
+        npat_pos = df_evt["ids__uid"].unique().shape[0]
+        n_frames_pos = int(df_evt["allsignals__target__{}".format(theevent)].sum())
+
+        npat_ctrl_pos = df_evt_ctrl["ids__uid"].unique().shape[0]
+        n_frames_ctrl = int(df_evt_ctrl["all_signals__ctrl"].sum())
+
+        ax.set_yticklabels(df_evt["ids__uid"].apply(lambda s:s[:10]),ha='right')
+        ax.set_title("{} event\n # Patients: {}/{}\n # {} minutes frames: {}".format(theevent, npat_pos, npat_evt_tot, wlen_min,n_frames_pos))
+
+        better_lookin(ax, grid=False, fontsize=12)
+        plt.tight_layout()
+
+        fig.savefig(os.path.join(outdir,"{}_patients_{}min_frame_count.pdf".format(theevent,wlen_min)))
+
+        a.append([theevent,npat_evt_tot, npat_pos, n_frames_pos, npat_ctrl_pos, n_frames_ctrl,npat_not_evt_tot,npat_not_ctrl,n_frames_not_ctrl])
+    col_names=["theevent","npat_evt_tot", "npat_pos", "n_frames_pos", "npat_ctrl_pos", "n_frames_ctrl","npat_not_evt_tot","npat_not_ctrl","n_frames_not_ctrl"]
+    dfout = pd.DataFrame(a, columns=col_names)
+    dfout.to_excel("evt_data_info.xlsx")
+
+    import os
+    for i in range(len(a)):
+        with open("tikz_template.tex","r") as fp:
+            stikz = fp.read()
+
+        for thename,thedata in zip(col_names,a[i]):
+            stikz=stikz.replace(thename,str(thedata).replace("_"," "))
+        outfname = "tikz/tikz_patcount_{}.tex".format(a[i][0])
+        with open(outfname,"w") as fp:
+            fp.write(stikz)
+        
+        #os.system("pdflatex "+outfname)
+    print()

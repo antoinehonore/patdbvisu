@@ -74,6 +74,8 @@ parser.add_argument("-wlen",type=int,help="Window length in minutes",default=10)
 parser.add_argument("-j",type=int,help="Number of jobs",default=1)
 parser.add_argument("-v",type=int,help="Verbosity (int)",default=0)
 parser.add_argument("-cache",type=str,help="Cache directory",default="cache")
+parser.add_argument("--tikz",action='store_true',help="Draw tikz flowcharts",default=False)
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -82,7 +84,12 @@ if __name__ == "__main__":
     verbose = args.v
     n_jobs = args.j
     cache_dir = args.cache
+    tikz = args.tikz
+
     os.makedirs(cache_dir, exist_ok=True)
+    os.makedirs(os.path.join(cache_dir, "patlist"), exist_ok=True)
+    os.makedirs(os.path.join(cache_dir, "plots"), exist_ok=True)
+    os.makedirs(os.path.join(cache_dir, "tikz"), exist_ok=True)
 
     cfg_fname = "cfg/db.cfg"
     #dbcfg = get_dbcfg(cfg_fname)
@@ -90,23 +97,35 @@ if __name__ == "__main__":
     
     fname = "summary_neo_all_wlen_{}min.csv".format(wlen_min)
     df = pd.read_csv(fname)
-    outdir = "plots"
+
     
     # Count of events
     all_events = ["neo_adverse","los","eos","cps_los","cns_los","cns_eos","cps_eos","infection","bleeding","lung_bleeding","infection","cns_infection","sro","abdominal_nec", "pneumonia","brain_ivh_stage_3_4","lung_bleeding"]
     a = []
     for theevent in all_events:
-        # Patients with  positive LOS frames
+        # Patients with positive frames for the event
         npat_not_evt_tot = int((df[theevent]==0).sum())
+
         npat_evt_tot = int(df[theevent].sum())
 
         df_evt = df[(df[theevent]==1) & (df["allsignals__target__{}".format(theevent)].notna())].sort_values("allsignals__target__{}".format(theevent))
+        # Write the patient list to file:
+        csv_s = "\n".join(df_evt[df_evt[theevent]==1]["ids__uid"].unique().tolist())
+        with open(os.path.join(cache_dir,"patlist","{}_evt_pat_list.csv".format(theevent)),"w",encoding="utf8") as fp:
+            fp.write(csv_s)
+
+
         df_evt_ctrl = df[(df[theevent]==1) & (df["all_signals__ctrl"].notna())]
         df_evt_not = df[(df[theevent]==0) & (df["all_signals__ctrl"].notna())]
+        csv_s = "\n".join(df_evt_not[df_evt_not[theevent]==0]["ids__uid"].unique().tolist())
+        with open(os.path.join(cache_dir,"patlist","{}_notevt_pat_list.csv".format(theevent)),"w",encoding="utf8") as fp:
+            fp.write(csv_s)
 
         npat_not_ctrl = df_evt_not["ids__uid"].unique().shape[0]
         n_frames_not_ctrl = int(df_evt_not["all_signals__ctrl"].sum())
 
+
+        # Plot the frame count for each patient
         fig, ax = plt.subplots(figsize=(8, 4))
         rect = ax.barh(df_evt["ids__uid"], df_evt["allsignals__target__{}".format(theevent)], color="darkgreen")
         ax.bar_label(rect,df_evt["allsignals__target__{}".format(theevent)].astype(int),fontsize=10)
@@ -124,23 +143,23 @@ if __name__ == "__main__":
         better_lookin(ax, grid=False, fontsize=12)
         plt.tight_layout()
 
-        fig.savefig(os.path.join(outdir,"{}_patients_{}min_frame_count.pdf".format(theevent,wlen_min)))
+        fig.savefig(os.path.join(cache_dir, "plots", "{}_patients_{}min_frame_count.pdf".format(theevent,wlen_min)))
 
         a.append([theevent,npat_evt_tot, npat_pos, n_frames_pos, npat_ctrl_pos, n_frames_ctrl,npat_not_evt_tot,npat_not_ctrl,n_frames_not_ctrl])
+
     col_names=["theevent","npat_evt_tot", "npat_pos", "n_frames_pos", "npat_ctrl_pos", "n_frames_ctrl","npat_not_evt_tot","npat_not_ctrl","n_frames_not_ctrl"]
     dfout = pd.DataFrame(a, columns=col_names)
-    dfout.to_excel("evt_data_info.xlsx")
+    dfout.to_excel(os.path.join(cache_dir, "evt_data_info.xlsx"))
+    
+    if tikz:
+        for i,_a in enumerate(a):
+            with open("tikz_template.tex","r",encoding="utf8") as fp:
+                stikz = fp.read()
 
-    import os
-    for i in range(len(a)):
-        with open("tikz_template.tex","r") as fp:
-            stikz = fp.read()
-
-        for thename,thedata in zip(col_names,a[i]):
-            stikz=stikz.replace(thename,str(thedata).replace("_"," "))
-        outfname = "tikz/tikz_patcount_{}.tex".format(a[i][0])
-        with open(outfname,"w") as fp:
-            fp.write(stikz)
+            for thename,thedata in zip(col_names,_a):
+                stikz=stikz.replace(thename,str(thedata).replace("_"," "))
+            outfname = os.path.join(cache_dir,"tikz","tikz_patcount_{}.tex".format(_a[0]))
+            with open(outfname, "w", encoding="utf8") as fp:
+                fp.write(stikz)
         
-        #os.system("pdflatex "+outfname)
     print()

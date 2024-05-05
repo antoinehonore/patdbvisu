@@ -1,6 +1,5 @@
 import argparse
 import pandas as pd
-
 from parse import parse
 import os
 from utils_plots.utils_plots import better_lookin
@@ -17,8 +16,8 @@ import matplotlib.pyplot as plt
 
 
 def summarize_patdata(ids__uid, wlen_min=10, cfg_fname="cfg/db.cfg", verbose=0, cache_dir="cache"):
-    if verbose>0:
-        pidprint("Processing",ids__uid,"...")
+    if verbose > 0:
+        pidprint("Processing", ids__uid, "...")
 
     out_fname = os.path.join(cache_dir, ids__uid + "_frame_count_" + str(wlen_min)+"min.pklz")
     if not os.path.exists(out_fname):
@@ -36,6 +35,7 @@ def summarize_patdata(ids__uid, wlen_min=10, cfg_fname="cfg/db.cfg", verbose=0, 
             write_pklz(out_features_fname,X)
         else:
             X = read_pklz(out_features_fname)
+        
         # List the target and feature names, assuming signals "spo2","rf","btb"
         targets_columns = [s for s in X.columns if s.startswith("target__")]
         feats_columns = {thesig: [s for s in X.columns if s.startswith("feats__"+thesig)] for thesig in ["spo2","rf","btb"]}
@@ -85,16 +85,14 @@ if __name__ == "__main__":
     n_jobs = args.j
     cache_dir = args.cache
     tikz = args.tikz
-
+    
     os.makedirs(cache_dir, exist_ok=True)
     os.makedirs(os.path.join(cache_dir, "patlist"), exist_ok=True)
     os.makedirs(os.path.join(cache_dir, "plots"), exist_ok=True)
     os.makedirs(os.path.join(cache_dir, "tikz"), exist_ok=True)
 
     cfg_fname = "cfg/db.cfg"
-    #dbcfg = get_dbcfg(cfg_fname)
-    #engine = get_engine(verbose=verbose, **dbcfg)
-    
+
     fname = "summary_neo_all_wlen_{}min.csv".format(wlen_min)
     df = pd.read_csv(fname)
 
@@ -157,9 +155,9 @@ if __name__ == "__main__":
                 stikz = fp.read()
 
             for thename,thedata in zip(col_names,_a):
-                stikz=stikz.replace(thename,str(thedata).replace("_"," "))
-            outfname = os.path.join(cache_dir,"tikz","tikz_patcount_{}.tex".format(_a[0]))
+                stikz = stikz.replace(thename,str(thedata).replace("_"," "))
+            outfname = os.path.join(cache_dir, "tikz", "tikz_patcount_{}.tex".format(_a[0]))
             with open(outfname, "w", encoding="utf8") as fp:
                 fp.write(stikz)
-        
+
     print()

@@ -94,6 +94,7 @@ def read_csv(fname, thetypes):
         for c in df.columns:
             if c in thetypes:
                 if thetypes[c].startswith("datetime64"):
+                    print(c)
                     df[c] = pd.to_datetime(df[c],format="mixed")
                 elif thetypes[c].startswith("int"):
                     df[c] = df[c].fillna(-99999).astype(thetypes[c])

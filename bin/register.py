@@ -9,10 +9,10 @@ import numpy as np
 import pandas as pd
 
 
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", type=str)
+parser.add_argument("--mapped", action='store_true', help="Covnert back to PNs", default=False)
+parser.add_argument("--register", action='store_true', help="Covnert back to PNs", default=False)
 
 
 if __name__ == "__main__":
@@ -40,23 +40,35 @@ if __name__ == "__main__":
         pidprint("unknown filetype:{}".format(fname), flag="error")
         sys.exit(0)
 
-    for k in ["Personnummer", "personnummer", "PN", "pn"]:
-        if k in list(df):
-            fhash = init_hash_fun()
+    if args.register:
+        for k in ["Personnummer", "personnummer", "PN", "pn"]:
+            if k in list(df):
+                fhash = init_hash_fun()
 
-            df[k] = df[k].apply(lambda s: format_pn(s.strip().replace(" ", "")))
-            not_pns = df[k].apply(lambda s: not is_pn(str(s)))
+                df[k] = df[k].apply(lambda s: format_pn(s.strip().replace(" ", "")))
+                not_pns = df[k].apply(lambda s: not is_pn(str(s)))
+                
+                if not_pns.any():
+                    pidprint(
+                        "Some entries in the {} column are not formatted as PNs:\n{}".format(k, df[k][not_pns]),
+                        flag="error")
 
-            if not_pns.any():
-                pidprint(
-                    "Some entries in the {} column are not formatted as PNs:\n{}".format(k, df[k][not_pns]),
-                    flag="error")
+                new_entries = {fhash(s): s for s in np.unique(df.loc[~not_pns, k].values)}
+                # with open("david/new_ids_mapping.csv","w") as fp:
+                # print("\n".join([",".join([v,k]) for k,v in new_entries.items()]),file=fp)
+                pidprint("{} entries found in file.".format(len(new_entries)), flag="info")
 
-            new_entries = {fhash(s): s for s in np.unique(df.loc[~not_pns, k].values)}
+                dbcfg = get_dbcfg(os.path.join(cfg_root, "pnuid.cfg"))
+                engine = get_engine(verbose=False, **dbcfg)
+                with engine.connect() as con:
+                    register_ids(new_entries, con)
 
-            pidprint("{} entries found in file.".format(len(new_entries)), flag="info")
-
-            dbcfg = get_dbcfg(os.path.join(cfg_root, "pnuid.cfg"))
-            engine = get_engine(verbose=False, **dbcfg)
-            with engine.connect() as con:
-                register_ids(new_entries, con)
+    if args.mapped:
+        for k in ["ids__uid"]:
+            if k in list(df):
+                dbcfg = get_dbcfg(os.path.join(cfg_root, "pnuid.cfg"))
+                engine = get_engine(verbose=False, **dbcfg)
+                with engine.connect() as con:
+                    dfout = pd.read_sql("select * from themap where ids__uid in ({})".format(", ".join(list(map(lambda s: "\'"+s+"\'", df["ids__uid"].values.tolist())))), con) #df["ids__uid"].apply(search_id)#(df.values[0][0])
+                
+                dfout.to_excel(fname.replace(".xlsx", "_mapped.xlsx"), index=False)

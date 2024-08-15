@@ -106,10 +106,7 @@ if __name__ == "__main__":
             df.loc[i, k] = v if v>0 else np.nan
     df.set_index("ids__uid", inplace=True)
     
-    # df.set_index("ids__uid").to_csv("summary_neo_all_wlen_{}min.csv".format(wlen_min))
     keep_cols = ["sex","ga_w","preterm","bw","vlbw","birthdate"]+[s for s in df.columns if (s.endswith("los") or s.endswith("ctrl"))]
     keep_cols = df.columns
     df[keep_cols].to_csv("summary_neo_all_wlen_{}min.csv".format(wlen_min))
-    print("")
-    
     

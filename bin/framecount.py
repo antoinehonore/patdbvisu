@@ -92,11 +92,10 @@ if __name__ == "__main__":
     os.makedirs(os.path.join(cache_dir, "tikz"), exist_ok=True)
 
     cfg_fname = "cfg/db.cfg"
-
-    fname = "summary_neo_all_wlen_{}min.csv".format(wlen_min)
+    fname = "summary_neo_all2024_wlen_10min.csv"
+    #fname = "summary_neo_all_wlen_{}min.csv".format(wlen_min)
     df = pd.read_csv(fname)
 
-    
     # Count of events
     all_events = ["neo_adverse","los","eos","cps_los","cns_los","cns_eos","cps_eos","infection","bleeding","lung_bleeding","infection","cns_infection","sro","abdominal_nec", "pneumonia","brain_ivh_stage_3_4","lung_bleeding"]
     a = []
@@ -111,7 +110,6 @@ if __name__ == "__main__":
         csv_s = "\n".join(df_evt[df_evt[theevent]==1]["ids__uid"].unique().tolist())
         with open(os.path.join(cache_dir,"patlist","{}_evt_pat_list.csv".format(theevent)),"w",encoding="utf8") as fp:
             fp.write(csv_s)
-
 
         df_evt_ctrl = df[(df[theevent]==1) & (df["all_signals__ctrl"].notna())]
         df_evt_not = df[(df[theevent]==0) & (df["all_signals__ctrl"].notna())]
@@ -143,21 +141,23 @@ if __name__ == "__main__":
 
         fig.savefig(os.path.join(cache_dir, "plots", "{}_patients_{}min_frame_count.pdf".format(theevent,wlen_min)))
 
-        a.append([theevent,npat_evt_tot, npat_pos, n_frames_pos, npat_ctrl_pos, n_frames_ctrl,npat_not_evt_tot,npat_not_ctrl,n_frames_not_ctrl])
+        a.append([theevent,npat_evt_tot, npat_pos, n_frames_pos, npat_ctrl_pos, n_frames_ctrl, npat_not_evt_tot, npat_not_ctrl, n_frames_not_ctrl])
 
-    col_names=["theevent","npat_evt_tot", "npat_pos", "n_frames_pos", "npat_ctrl_pos", "n_frames_ctrl","npat_not_evt_tot","npat_not_ctrl","n_frames_not_ctrl"]
+    col_names = ["theevent","npat_evt_tot", "npat_pos", "n_frames_pos", "npat_ctrl_pos", "n_frames_ctrl","npat_not_evt_tot","npat_not_ctrl","n_frames_not_ctrl"]
     dfout = pd.DataFrame(a, columns=col_names)
     dfout.to_excel(os.path.join(cache_dir, "evt_data_info.xlsx"))
-    
+    ntot_pat = [_a[1]+_a[6] for _a in a]
+    assert(all([tot_count == ntot_pat[0] for tot_count in ntot_pat]))
+    ntot_pat = ntot_pat[0]
     if tikz:
         for i,_a in enumerate(a):
             with open("tikz_template.tex","r",encoding="utf8") as fp:
                 stikz = fp.read()
-
+            stikz = stikz.replace("npat_tot","{}".format(ntot_pat))
             for thename,thedata in zip(col_names,_a):
                 stikz = stikz.replace(thename,str(thedata).replace("_"," "))
             outfname = os.path.join(cache_dir, "tikz", "tikz_patcount_{}.tex".format(_a[0]))
             with open(outfname, "w", encoding="utf8") as fp:
                 fp.write(stikz)
-
+    
     print()

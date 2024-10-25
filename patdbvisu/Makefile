@@ -2,7 +2,7 @@ SHELL=/bin/bash
 
 infolder=data
 endfolder=dbfiles
-PYTHON=pyenv/bin/python
+PYTHON=../pyenv/bin/python
 
 ifndef fname
 	fname=$(infolder)/20575_takecare.csv

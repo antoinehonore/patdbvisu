@@ -23,7 +23,7 @@ setup(
     
     #
     # license="LICENSE.txt",
-    description="Useful towel-related stuff.",
+    description="",
     
     # long_description=open("README.txt").read(),
     

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-usage="notif.sh <folder>"
+usage="upload.sh <folder>"
 
 if test "$#" -ne 1; then
     echo "Usage:" $usage
@@ -8,7 +8,6 @@ if test "$#" -ne 1; then
 fi
 
 WATCHED=$1
-processes=
 
 inotifywait -mre CLOSE_WRITE,MOVED_TO --format $'%e\t%w%f' $WATCHED |
     while IFS=$'\t' read -r events new

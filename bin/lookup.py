@@ -1,20 +1,19 @@
 import argparse
 import pandas as pd
-
 from parse import parse
 import os
 from utils_plots.utils_plots import better_lookin
 from utils_tbox.utils_tbox import date_fmt, pidprint, gdate, write_pklz, read_pklz
-from utils_db.utils_db import get_engine, get_dbcfg, run_query,get_pat_feats, run_query,get_pat_labels,ids2str
+from utils_db.utils_db import get_engine, get_dbcfg, run_query, get_pat_feats, run_query, get_pat_labels, ids2str
 from sqlalchemy import text
 import sys
 import numpy as np
 from collections import ChainMap
 from multiprocessing import Pool
 from functools import partial
-import argparse
 import matplotlib.pyplot as plt
 from tableone import TableOne
+
 
 def export_raw_lf_data(ids__uid, outdir=".", verbose=0, _read=False, _return=False):
     outfname = os.path.join(outdir, "vitalsigns_{}.csv.gz".format(ids__uid))
@@ -58,13 +57,10 @@ def export_raw_lf_data(ids__uid, outdir=".", verbose=0, _read=False, _return=Fal
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-wlen",type=int,help="Window length in minutes", default=10)
 parser.add_argument("-j",type=int,help="Number of jobs", default=1)
 parser.add_argument("-i",type=str,help="Input patient list", default=1)
 parser.add_argument("-outdir", type=str, help="Output directory", default=None)
 parser.add_argument("-v",type=int,help="Verbosity (int)", default=0)
-parser.add_argument("-cache", type=str, help="Cache directory", default="cache")
-parser.add_argument("--tikz", action='store_true', help="Draw tikz flowcharts", default=False)
 parser.add_argument("--tableone", action='store_true', help="Compute and store a descriptive table", default=False)
 parser.add_argument("--parameterdata", action='store_true', help="Retrieve and store the parameter data of all patients.", default=False)
 
@@ -72,11 +68,11 @@ parser.add_argument("--parameterdata", action='store_true', help="Retrieve and s
 if __name__ == "__main__":
     args = parser.parse_args()
 
-    wlen_min = args.wlen
+    #wlen_min = args.wlen
     verbose = args.v
     n_jobs = args.j
-    cache_dir = args.cache
-    tikz = args.tikz
+    #cache_dir = args.cache
+    #tikz = args.tikz
     input_fname = args.i
     compute_tableone = args.tableone
     parameter_data = args.parameterdata
@@ -91,14 +87,16 @@ if __name__ == "__main__":
     dbcfg = get_dbcfg(cfg_fname)
     engine = get_engine(verbose=verbose, **dbcfg)
     
-    query = "select vuh.*,ov.birthdate,ov.ga_w,ov.sex,ov.bw from view__uid_has vuh, overview ov where ov.ids__uid in ({}) and ov.ids__uid = vuh.ids__uid".format(study_pat_str)
+    query = "select ov.ids__uid,ov.ga_w,ov.sex,ov.bw,ov.apgar_1,ov.apgar_5,ov.apgar_10,ov.delivery from  overview ov where ov.ids__uid in ({})".format(study_pat_str)
 
     demo_data = run_query(query, engine)
     demo_data["in_database"] = 1
 
     study_db_overview = pd.concat([study_pat_df.set_index("ids__uid"), demo_data.set_index("ids__uid")], axis=1)
     study_db_overview["in_database"].fillna(0,inplace=True)
-    study_db_overview.reset_index().set_index(["ids__uid", "birthdate"], inplace=True)
+    study_db_overview.reset_index().set_index(["ids__uid"], inplace=True)
+
+    study_db_overview.to_excel(os.path.join(outdir, os.path.basename(input_fname).replace(".csv", ".xlsx")))
 
     if compute_tableone:
         study_db_overview["los"] = ["los" if v == 1 else "" for v in study_db_overview["los"]]

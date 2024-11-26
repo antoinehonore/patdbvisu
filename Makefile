@@ -12,8 +12,10 @@ ifndef logfile
 	logfile=log/patdbvisu_$(shell date +"%Y%m%d").log
 endif
 
-
-interm_fname=$(shell echo $(endfolder)/$(shell basename $(shell dirname $(fname)))/$(shell basename $(fname) | sed -e 's/[,()]//g' -e 's/:/-/g' -e 's/ /__/g' -e 's/%/perc/g' -e 's/.*/\L&/') | sed 's/.xlsx/.csv/g')
+# Read input fname and give it a name in dbfiles, e.g. 
+#    data/takecare/20575_takecare.csv -> dbfiles/takecare/20575_takecare.csv
+#    data/monitor
+interm_fname=$(shell echo $(endfolder)/ $(shell basename $(shell dirname $(fname))) / $(shell basename $(fname) | sed -e 's/[,()]//g' -e 's/:/-/g' -e 's/ /__/g' -e 's/%/perc/g' -e 's/.*/\L&/') | sed 's/.xlsx/.csv/g')
 
 
 test:

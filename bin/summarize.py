@@ -1,6 +1,5 @@
 import argparse
 import pandas as pd
-
 from parse import parse
 import os
 from utils_tbox.utils_tbox import date_fmt, pidprint, gdate, write_pklz, read_pklz
@@ -11,7 +10,6 @@ import numpy as np
 from collections import ChainMap
 from multiprocessing import Pool
 from functools import partial
-import argparse
 
 def summarize_patdata(ids__uid, wlen_min=10, cfg_fname="cfg/db.cfg", verbose=0, cache_dir="cache"):
     if verbose>0:
@@ -66,11 +64,14 @@ def summarize_patdata(ids__uid, wlen_min=10, cfg_fname="cfg/db.cfg", verbose=0, 
         outdict = read_pklz(out_fname)
     return outdict
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-wlen",type=int,help="Window length in minutes",default=10)
 parser.add_argument("-j",type=int,help="Number of jobs",default=1)
 parser.add_argument("-v",type=int,help="Verbosity (int)",default=0)
 parser.add_argument("-cache",type=str,help="Cache directory",default="cache")
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
 

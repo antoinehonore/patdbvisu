@@ -13,3 +13,4 @@ make run
 # Details 
 
 [Wiki page](https://gitlab.com/antoinehonore/patdbvisu/-/wikis/Documentation)
+(github) [Wiki page](https://github.com/antoinehonore/patdbvisu/wiki/Documentation)
